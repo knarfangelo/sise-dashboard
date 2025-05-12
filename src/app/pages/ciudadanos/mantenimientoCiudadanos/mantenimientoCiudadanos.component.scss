@@ -1,0 +1,43 @@
+.contenedor {
+  max-width: 80%;
+  min-width: 1150px;
+  min-height: 420px;
+  border-radius: 20px;
+  margin: 30px auto;
+  box-sizing: border-box;
+  padding: 25px;
+  height: auto;
+  position: relative;
+  background-color: #fff;
+}
+
+.busqueda {
+  display: flex;
+  gap: 10px;
+}
+
+.estado {
+ 
+}
+
+.contenedor-checkbox {
+  display: flex;
+  gap: 15px;
+  margin-left: auto;
+}
+
+.busqueda-pais {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  margin: 20px 0;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 350px;
+  position: absolute;
+  right: 0;
+}

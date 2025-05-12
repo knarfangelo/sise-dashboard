@@ -1,0 +1,26 @@
+.contenedor {
+  max-width: 80%;
+  min-width: 1150px;
+  border-radius: 20px;
+  margin: 30px auto;
+  box-sizing: border-box;
+  padding: 25px;
+  height: auto;
+  position: relative;
+  background-color: #fff;
+}
+
+.buscador {
+  display: grid;
+  grid-template-columns: repeat(4, 225px);
+  gap: 10px;
+  margin-bottom: 20px;
+
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}

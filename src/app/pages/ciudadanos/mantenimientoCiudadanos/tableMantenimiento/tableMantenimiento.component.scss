@@ -1,0 +1,58 @@
+
+.acciones {
+  display: flex;
+  justify-content: start;
+  gap: 5px;
+  align-items: center;
+}
+
+.btn  {
+  border: 1px solid #ccc;
+  cursor: pointer;
+  border-radius: 8px;
+  width: 35px;
+  height: 35px;
+}
+
+.estados p {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 5px;
+  text-shadow: 1px 1px 1px #919191;
+  border-radius: 15px;
+  color: #000;
+  font-weight: bold;
+}
+
+.estado-en-revision {
+  p{
+    color: rgb(255, 255, 131);
+  }
+}
+.estado-rechazado {
+  p{
+    color: rgb(255, 131, 131);
+  }
+}
+.estado-aprobado {
+  p{
+    color: rgb(146, 255, 131);
+  }
+}
+
+p-dialog{
+  
+  display: flex;
+  height: 200px;
+
+  p-floatlabel {
+    margin: 20px 0;
+  }
+
+  input {
+    width: 100%;
+    height: auto;
+  }
+
+}

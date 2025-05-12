@@ -1,0 +1,39 @@
+.contenedor {
+  max-width: 80%;
+  min-width: 1150px;
+  border-radius: 20px;
+  margin: 30px auto;
+  box-sizing: border-box;
+  padding: 25px;
+  height: auto;
+  position: relative;
+  background-color: #fff;
+}
+
+.buscar {
+  display: flex;
+  gap: 10px;
+  
+  button {
+    border: 1px solid #ccc;
+    width: 45px;
+    height: auto;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+
+    &:nth-child(5) {
+      background-color: #00B2CA; 
+      margin-left: auto;
+    }
+    &:nth-child(6) {
+      background-color: #F79256;
+    }
+
+    &:active {
+      opacity: 0.5;
+    }
+
+  }
+  
+}

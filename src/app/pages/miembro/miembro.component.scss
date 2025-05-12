@@ -1,0 +1,58 @@
+.contenedor{
+  max-width: 80%;
+  min-width: 1150px;
+  border-radius: 20px;
+  margin: 30px auto;
+  box-sizing: border-box;
+  padding: 25px;
+  height: auto;
+  position: relative;
+  background-color: #fff; 
+}
+
+.info {
+  display: flex;
+}
+
+.foto {
+  min-width: 250px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  box-shadow: 1px 1px 5px gray;
+
+  i {
+    font-size: 180px;
+  }
+  .dni {
+    font-size: 20px;
+    margin-top: 10px;
+  } 
+
+}
+
+
+.datos {
+  display: grid;
+  margin: 10px auto;
+  grid-template-columns: repeat(4, 200px);
+
+  h3 {
+    display: flex;
+    flex-direction: column;
+    font-size: 20px;
+    
+    .active {
+      color: #008091;
+      cursor: pointer;
+    }
+  }
+  h3 span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}

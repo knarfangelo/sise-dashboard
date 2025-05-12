@@ -1,0 +1,74 @@
+.contenedor{
+  max-width: 80%;
+  min-width: 1150px;
+  border-radius: 20px;
+  margin: 30px auto;
+  box-sizing: border-box;
+  padding: 25px;
+  height: auto;
+  position: relative;
+  background-color: #ffffff; 
+
+  h1 {
+    font-size: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+}
+
+.configuracion {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  min-width: 100px;
+  cursor: pointer;
+  
+  border-radius: 5px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.buscar{
+  margin-left: auto;
+  background-color: green;
+}
+.editar {
+  background-color: hsl(60, 50%, 50%);;
+}
+.limpiar {
+  background-color: rgb(73, 73, 255);
+}
+
+.config-semaforo {
+  display: grid;
+  grid-template-columns: 3fr 1fr; 
+
+  .info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.c-semaforo {
+  width: auto;
+  margin: auto;
+}
+
+.info__item {
+  font-size: 20px;
+  
+  &:nth-child(4) {
+    font-weight: bold;
+    color: hsl(0, 50%, 50%);
+  }
+  &:nth-child(5) {
+    font-weight: bold;
+    color: hsl(60, 50%, 50%);
+  }
+  &:nth-child(6) {
+    font-weight: bold;
+    color: hsl(120, 50%, 25%);
+  }
+}
