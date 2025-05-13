@@ -9,11 +9,21 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 @Component({
   selector: 'app-semaforos',
   standalone: true,
-  imports: [TableModule, CommonModule, ButtonModule, SelectModule, FormsModule, DialogModule, InputTextModule],
+  imports: [
+    TableModule,
+    CommonModule,
+    ButtonModule,
+    SelectModule,
+    FormsModule,
+    DialogModule,
+    InputTextModule,
+    ProgressSpinnerModule
+  ],
   template: `
     <section class="contenedor">
       <div class="selectores">
@@ -53,7 +63,11 @@ import { FormsModule } from '@angular/forms';
 
     <section class="contenedor">
       <div class="card">
+        <!-- Spinner de carga -->
+        <p-progressSpinner *ngIf="loading" styleClass="spinner" [style]="{width: '50px', height: '50px'}"></p-progressSpinner>
+
         <p-table
+          *ngIf="!loading"
           [value]="filteredSemaforos"
           [paginator]="true"
           [rows]="5"
@@ -65,6 +79,7 @@ import { FormsModule } from '@angular/forms';
         >
           <ng-template pTemplate="header">
             <tr>
+              <th>ID</th>
               <th>Departamento</th>
               <th>Provincia</th>
               <th>Distrito</th>
@@ -75,6 +90,7 @@ import { FormsModule } from '@angular/forms';
           </ng-template>
           <ng-template pTemplate="body" let-s>
             <tr>
+              <td>{{ s.distritoId }}</td>
               <td>{{ s.departamento }}</td>
               <td>{{ s.provincia }}</td>
               <td>{{ s.distrito }}</td>
@@ -90,19 +106,31 @@ import { FormsModule } from '@angular/forms';
       </div>
 
       <div class="card flex justify-center">
-        <p-dialog header="Editar Semáforo" [modal]="true" [(visible)]="visible" [style]="{ width: '25rem' }">
-          <div class="flex items-center gap-4 mb-4">
+        <p-dialog header="Editar Semáforo" [modal]="true" [(visible)]="visible" [style]="{ width: '30rem' }">
+          <div class="flex items-center gap-10 mb-4">
+            <!-- Rojo -->
             <label for="rojo" class="font-semibold w-24">Rojo</label>
-            <input pInputText id="rojo" [(ngModel)]="semaforo.maxRojo" class="flex-auto" autocomplete="off" />
+            <!-- Campo bloqueado con valor 0 y otro campo editable para maxRojo -->
+            <input pInputText disabled id="rojo0" [value]="0" class="w-[80px]" [readonly]="true" /><span>-</span>
+            <input pInputText type="number" id="rojo" [(ngModel)]="semaforo.maxRojo" class="w-[80px]" autocomplete="off" />
           </div>
-          <div class="flex items-center gap-4 mb-4">
+          
+          <div class="flex items-center gap-10 mb-4">
+            <!-- Amarillo -->
             <label for="amarillo" class="font-semibold w-24">Amarillo</label>
-            <input pInputText id="amarillo" [(ngModel)]="semaforo.maxAmarillo" class="flex-auto" autocomplete="off" />
+            <!-- Campo bloqueado con valor maxRojo + 1 y otro campo editable para maxAmarillo -->
+            <input pInputText disabled type="number" id="amarillo0" [value]="semaforo.maxRojo + 1" class="w-[80px]" [readonly]="true" /><span>-</span>
+            <input pInputText type="number" id="amarillo" [(ngModel)]="semaforo.maxAmarillo" class="w-[80px]" autocomplete="off" />
           </div>
-          <div class="flex items-center gap-4 mb-4">
+          
+          <div class="flex items-center gap-10 mb-4">
+            <!-- Verde -->
             <label for="verde" class="font-semibold w-24">Verde</label>
-            <input pInputText id="verde" [(ngModel)]="semaforo.maxVerde" class="flex-auto" autocomplete="off" />
+            <!-- Campo bloqueado con valor maxAmarillo + 1 y otro campo editable para maxVerde -->
+            <input pInputText disabled type="number" id="verde0" [value]="semaforo.maxAmarillo + 1" class="w-[80px]" [readonly]="true" /> <span>-</span>
+            <input pInputText type="number" id="verde" [(ngModel)]="semaforo.maxVerde" class="w-[80px]" autocomplete="off" />
           </div>
+          
           <div class="flex justify-end gap-2">
             <p-button label="Cancelar" severity="secondary" (click)="visible = false" />
             <p-button label="Guardar" (click)="saveSemaphore()" />
@@ -114,6 +142,9 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./semaforos.component.scss']
 })
 export class SemaforosComponent implements OnInit {
+
+  loading: boolean = false;
+
   semaforos: Semaforo[] = [];
   filteredSemaforos: Semaforo[] = [];
   departamentos: Departamento[] = [];
@@ -145,6 +176,7 @@ export class SemaforosComponent implements OnInit {
   }
 
   loadSemaforos(): void {
+    this.loading = true;
     this.semaforoService.getSemaforos().subscribe((data) => {
       this.semaforos = data;
       this.filteredSemaforos = [...data];
@@ -152,8 +184,10 @@ export class SemaforosComponent implements OnInit {
   }
 
   loadDepartamentos(): void {
+    this.loading = true;
     this.departamentoService.listarDepartamentos().subscribe((data) => {
       this.departamentos = data;
+      this.loading = false;
     });
   }
 
@@ -195,41 +229,39 @@ export class SemaforosComponent implements OnInit {
     this.first = 0;
   }
 
-saveSemaphore(): void {
-  if (this.selectedDistrito) {
-    this.semaforo.nombre = `${this.selectedDepartamento?.nombre} - ${this.selectedProvincia?.nombre} - ${this.selectedDistrito.nombre}`;
-    this.semaforo.distritoId = this.selectedDistrito.id;
-
+  saveSemaphore(): void {
     this.semaforoService.registrarSemaforo(this.semaforo).subscribe({
       next: () => {
-        this.loadSemaforos();
+        const index = this.semaforos.findIndex(s => s.distritoId === this.semaforo.distritoId);
+        if (index !== -1) {
+          this.semaforos[index] = { ...this.semaforo };
+        }
+
+        this.filterTable();
         this.visible = false;
       },
       error: (err) => {
         console.error('Error al registrar semáforo:', err);
+        alert(err?.error?.error ?? 'Error desconocido al registrar el semáforo.');
       }
     });
   }
-}
-
-
-
 
   showDialog(semaforo: Semaforo): void {
-    this.semaforo = { ...semaforo }; // Set semaphore data for editing
+    this.semaforo = { ...semaforo };
     this.visible = true;
   }
 
   onPageChange(event: { first: number; rows: number }): void {
     this.first = event.first;
     this.rows = event.rows;
-  }
-
-  isFirstPage(): boolean {
+    }
+    
+    isFirstPage(): boolean {
     return this.first === 0;
-  }
-
-  isLastPage(): boolean {
+    }
+    
+    isLastPage(): boolean {
     return this.first >= this.filteredSemaforos.length - this.rows;
+    }
   }
-}

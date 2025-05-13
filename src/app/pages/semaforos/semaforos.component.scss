@@ -13,37 +13,53 @@
 
 /* Estilo general para los focos */
 .foco {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background-color: #ccc; /* Color gris cuando el foco no está activo */
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Sombra para darle profundidad */
-  transition: all 0.3s ease; /* Transición suave al cambiar de estado */
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #999 0%, #666 100%);
+  border: 4px solid #222;
+  box-shadow:
+    inset 0 0 10px #000000aa,
+    0 0 20px rgba(0, 0, 0, 0.7);
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-/* Estilo para el foco rojo */
-.rojo {
-  background-color: red; /* Rojo como color base */
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6); /* Efecto de luz brillante */
-  transform: scale(1.1); /* Efecto de aumentar ligeramente el tamaño del foco */
+/* Foco encendido - Rojo */
+.foco.rojo {
+  background: radial-gradient(circle at center, #ff4d4d, #800000);
+  box-shadow:
+    0 0 20px rgba(255, 0, 0, 0.8),
+    inset 0 0 15px #ff0000;
 }
 
-/* Estilo para el foco amarillo */
-.amarillo {
-  background-color: yellow; /* Amarillo como color base */
-  box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); /* Efecto de luz amarilla brillante */
-  transform: scale(1.1); /* Efecto de aumentar ligeramente el tamaño del foco */
+/* Foco encendido - Amarillo */
+.foco.amarillo {
+  background: radial-gradient(circle at center, #ffff66, #b3b300);
+  box-shadow:
+    0 0 20px rgba(255, 255, 0, 0.8),
+    inset 0 0 15px #ffff00;
+  color: #111;
 }
 
-/* Estilo para el foco verde */
-.verde {
-  background-color: green; /* Verde como color base */
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6); /* Efecto de luz verde brillante */
-  transform: scale(1.1); /* Efecto de aumentar ligeramente el tamaño del foco */
+/* Foco encendido - Verde */
+.foco.verde {
+  background: radial-gradient(circle at center, #66ff66, #006600);
+  box-shadow:
+    0 0 20px rgba(0, 255, 0, 0.8),
+    inset 0 0 15px #00ff00;
+}
+
+/* Foco apagado */
+.foco.apagado {
+  background: radial-gradient(circle at center, #aaa, #444);
+  box-shadow: inset 0 0 5px #111;
 }
 
 /* Foco apagado (cuando no está activo) */

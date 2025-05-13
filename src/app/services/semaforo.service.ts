@@ -18,10 +18,15 @@ export class SemaforoService {
     return this.http.get<any[]>(this.apiUrl + '/listar');
   }
 
-// semaforo.service.ts
- // Ya no se necesita el distritoId como parámetro separado
   registrarSemaforo(semaforo: Semaforo): Observable<any> {
-    return this.http.post(`${this.apiUrl}/registrar`, semaforo);
+    const dto = {
+      nombre: semaforo.nombre,
+      maxRojo: semaforo.maxRojo,
+      maxAmarillo: semaforo.maxAmarillo,
+      maxVerde: semaforo.maxVerde,
+      idDistrito: semaforo.distritoId,
+    };
+    return this.http.post(`${this.apiUrl}/registrar`, dto);
   }
 
 }

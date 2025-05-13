@@ -9,6 +9,13 @@ header {
   background-color: #e4e4e4;
   justify-content: center;
 }
+.logo {
+  font-size: 50px;
+  text-align: center;
+  font-style: italic;
+  font-weight: bold;
+  width: 100%;
+}
 nav {
     background-color: #1f2937; // Gris oscuro (tipo Tailwind "gray-800")
     min-width: 290px;
