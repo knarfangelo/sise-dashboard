@@ -33,3 +33,22 @@ export interface Departamento {
     label: string;
     value: number;
   }
+export interface Semaforo {
+  nombre: string;
+  maxRojo: number;
+  maxAmarillo: number;
+  maxVerde: number;
+  departamento: string;
+  provincia: string;
+  distrito: string;
+  nombreSemaforo?: string;  // Asegúrate de que este campo esté aquí
+  distritoId: number;       // Aquí es donde se asigna el ID del distrito
+}
+
+
+export interface SemaforoResponse {
+  nombre: string;
+  maxRojo: number;
+  maxAmarillo: number;
+  maxVerde: number;
+}

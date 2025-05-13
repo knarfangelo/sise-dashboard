@@ -232,7 +232,7 @@ export class RedesComponent {
   }
 
   cargarDepartamentos(): void {
-    this.departamentoService.getDepartamentos().subscribe({
+    this.departamentoService.listarDepartamentos().subscribe({
       next: (data: Departamento[]) => {
         this.departamentosData = data;
         this.departamentos = data.map(departamento => ({

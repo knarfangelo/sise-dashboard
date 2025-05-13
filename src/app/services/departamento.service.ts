@@ -6,15 +6,11 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class DepartamentoService {
+  private baseUrl = 'http://localhost:8080/api/departamentos';
 
-  private apiUrl = 'http://localhost:8080/departamento'; // Cambia esto por la URL de tu API
+  constructor(private http: HttpClient) {}
 
-
-  constructor(private http: HttpClient) { }
-
-  getDepartamentos(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}`);
+  listarDepartamentos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/listar`);
   }
-
-
 }

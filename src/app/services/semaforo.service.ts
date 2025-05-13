@@ -1,0 +1,27 @@
+// semaforo.service.ts
+
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { Semaforo, SemaforoResponse } from '../models/models';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class SemaforoService {
+  private apiUrl = 'http://localhost:8080/api/semaforos'; // Cambia esto a tu endpoint de Spring Boot
+
+  constructor(private http: HttpClient) {}
+
+  // Método para obtener los semáforos
+  getSemaforos(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrl + '/listar');
+  }
+
+// semaforo.service.ts
+ // Ya no se necesita el distritoId como parámetro separado
+  registrarSemaforo(semaforo: Semaforo): Observable<any> {
+    return this.http.post(`${this.apiUrl}/registrar`, semaforo);
+  }
+
+}

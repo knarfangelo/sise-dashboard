@@ -9,66 +9,52 @@
   position: relative;
   background-color: #ffffff; 
 
-  h1 {
-    font-size: 30px;
-    text-align: center;
-    margin-bottom: 20px;
-  }
 }
 
-.configuracion {
+/* Estilo general para los focos */
+.foco {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #ccc; /* Color gris cuando el foco no está activo */
+  position: relative;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Sombra para darle profundidad */
+  transition: all 0.3s ease; /* Transición suave al cambiar de estado */
 }
 
-button {
-  min-width: 100px;
-  cursor: pointer;
-  
-  border-radius: 5px;
-  font-weight: bold;
-  color: #ffffff;
+/* Estilo para el foco rojo */
+.rojo {
+  background-color: red; /* Rojo como color base */
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6); /* Efecto de luz brillante */
+  transform: scale(1.1); /* Efecto de aumentar ligeramente el tamaño del foco */
 }
 
-.buscar{
-  margin-left: auto;
-  background-color: green;
-}
-.editar {
-  background-color: hsl(60, 50%, 50%);;
-}
-.limpiar {
-  background-color: rgb(73, 73, 255);
+/* Estilo para el foco amarillo */
+.amarillo {
+  background-color: yellow; /* Amarillo como color base */
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); /* Efecto de luz amarilla brillante */
+  transform: scale(1.1); /* Efecto de aumentar ligeramente el tamaño del foco */
 }
 
-.config-semaforo {
-  display: grid;
-  grid-template-columns: 3fr 1fr; 
-
-  .info {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-  }
+/* Estilo para el foco verde */
+.verde {
+  background-color: green; /* Verde como color base */
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6); /* Efecto de luz verde brillante */
+  transform: scale(1.1); /* Efecto de aumentar ligeramente el tamaño del foco */
 }
 
-.c-semaforo {
-  width: auto;
-  margin: auto;
+/* Foco apagado (cuando no está activo) */
+.foco.apagado {
+  background-color: #ccc; /* Gris claro */
+  box-shadow: none; /* Sin sombra */
+  transform: scale(1); /* No cambia de tamaño */
 }
 
-.info__item {
-  font-size: 20px;
-  
-  &:nth-child(4) {
-    font-weight: bold;
-    color: hsl(0, 50%, 50%);
-  }
-  &:nth-child(5) {
-    font-weight: bold;
-    color: hsl(60, 50%, 50%);
-  }
-  &:nth-child(6) {
-    font-weight: bold;
-    color: hsl(120, 50%, 25%);
-  }
+.selectores{
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
