@@ -16,12 +16,12 @@ import { Departamento, Distrito, Persona, Provincia, SelectItem } from '../../mo
   standalone: true,
   imports: [
     CommonModule,
-    FloatLabel, 
-    InputText, 
-    FormsModule, 
-    Button, 
-    TableModule, 
-    ChartModule, 
+    FloatLabel,
+    InputText,
+    FormsModule,
+    Button,
+    TableModule,
+    ChartModule,
     RouterLink,
     RouterModule,
     SelectModule
@@ -45,7 +45,7 @@ import { Departamento, Distrito, Persona, Provincia, SelectItem } from '../../mo
           <input pInputText id="apellido_materno" [(ngModel)]="filtroApellidoMaterno" autocomplete="off" />
           <label for="apellido_materno">Apellido Materno</label>
         </p-floatlabel>
-        
+
         <p-select
           id="departamento"
           [options]="departamentos"
@@ -252,7 +252,7 @@ export class RedesComponent {
       const departamentoSeleccionado = this.departamentosData.find(
         d => d.id === this.filtroDepartamento?.value
       );
-      
+
       if (departamentoSeleccionado) {
         this.provincias = departamentoSeleccionado.provincias.map(provincia => ({
           label: provincia.nombre,
@@ -262,7 +262,7 @@ export class RedesComponent {
     } else {
       this.provincias = [];
     }
-    
+
     this.filtroProvincia = null;
     this.filtroDistrito = null;
     this.distritos = [];
@@ -274,12 +274,12 @@ export class RedesComponent {
       const departamentoSeleccionado = this.departamentosData.find(
         d => d.id === this.filtroDepartamento?.value
       );
-      
+
       if (departamentoSeleccionado) {
         const provinciaSeleccionada = departamentoSeleccionado.provincias.find(
           p => p.id === this.filtroProvincia?.value
         );
-        
+
         if (provinciaSeleccionada) {
           this.distritos = provinciaSeleccionada.distritos.map(distrito => ({
             label: distrito.nombre,
@@ -290,7 +290,7 @@ export class RedesComponent {
     } else {
       this.distritos = [];
     }
-    
+
     this.filtroDistrito = null;
     this.cd.markForCheck();
   }
@@ -298,7 +298,7 @@ export class RedesComponent {
   prepararDatosGrafico(): void {
     const personasOrdenadas = [...this.personas].sort((a, b) => b.miembros - a.miembros);
     const topPersonas = personasOrdenadas.slice(0, 5);
-    
+
     const documentStyle = getComputedStyle(document.documentElement);
     const textColor = documentStyle.getPropertyValue('--text-color');
     const textColorSecondary = documentStyle.getPropertyValue('--text-secondary-color');
@@ -382,7 +382,7 @@ export class RedesComponent {
         (!distritoNombre || persona.distrito.toLowerCase() === distritoNombre.toLowerCase())
       );
     });
-    
+
     this.prepararDatosGrafico();
     this.cd.markForCheck();
   }

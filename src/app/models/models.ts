@@ -4,18 +4,18 @@ export interface Departamento {
     nombre: string;
     provincias: Provincia[];
   }
-  
+
   export interface Provincia {
     id: number;
     nombre: string;
     distritos: Distrito[];
   }
-  
+
   export interface Distrito {
     id: number;
     nombre: string;
   }
-  
+
   export interface Persona {
     dni: string;
     nombre: string;
@@ -28,7 +28,7 @@ export interface Departamento {
     distrito: string;
     miembros: number;
   }
-  
+
   export interface SelectItem {
     label: string;
     value: number;
@@ -42,11 +42,23 @@ export interface Departamento {
     provincia: string;
     distrito: string;
     distritoId: number;
-  }  
+  }
 
 export interface SemaforoResponse {
   nombre: string;
   maxRojo: number;
   maxAmarillo: number;
   maxVerde: number;
+}
+
+export interface Ciudadano {
+  dni: string;
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+  celular: string;
+  estado: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
 }

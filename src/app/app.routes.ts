@@ -8,6 +8,7 @@ import { MiembroComponent } from './pages/miembro/miembro.component';
 import { SemaforosComponent } from './pages/semaforos/semaforos.component';
 import { TareasComponent } from './pages/tareas/tareas.component';
 import { UsuariosComponent } from './pages/Usuarios/Usuarios.component';
+import { TableMantenimientoComponent } from './pages/ciudadanos/mantenimientoCiudadanos/tableMantenimiento/tableMantenimiento.component';
 
 export const routes: Routes = [
 

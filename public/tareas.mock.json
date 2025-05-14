@@ -1,0 +1,32 @@
+[
+  {
+    "mensaje": "Revisión de documento importante",
+    "destinatario": "Juan Pérez",
+    "leido": false,
+    "prioridad": "Alta"
+  },
+  {
+    "mensaje": "Reunión con el equipo de desarrollo",
+    "destinatario": "María López",
+    "leido": true,
+    "prioridad": "Media"
+  },
+  {
+    "mensaje": "Entrega del informe mensual",
+    "destinatario": "Carlos Fernández",
+    "leido": false,
+    "prioridad": "Baja"
+  },
+  {
+    "mensaje": "Actualización de la base de datos",
+    "destinatario": "Ana García",
+    "leido": true,
+    "prioridad": "Alta"
+  },
+  {
+    "mensaje": "Revisión de código en producción",
+    "destinatario": "Pedro Sánchez",
+    "leido": false,
+    "prioridad": "Media"
+  }
+]
