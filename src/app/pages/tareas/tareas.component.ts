@@ -1,382 +1,411 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { FormsModule, NgForm } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MessageService } from 'primeng/api';
-import { ButtonModule } from 'primeng/button';
+import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
-import { TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
-import { TagModule } from 'primeng/tag';
-import { ToolbarModule } from 'primeng/toolbar';
-import { AvatarModule } from 'primeng/avatar';
-import { BadgeModule } from 'primeng/badge';
 import { DropdownModule } from 'primeng/dropdown';
+import { ButtonModule } from 'primeng/button';
+import { CalendarModule } from 'primeng/calendar';
+
+import { Chart, registerables } from 'chart.js';
+import { MessageService } from 'primeng/api';
+import { TaskService } from '../../services/task.service';
+import { DepartamentoService } from '../../services/departamento.service';
 import { InputTextModule } from 'primeng/inputtext';
 
-type Prioridad = 'Alta' | 'Media' | 'Baja';
-interface Tarea {
+Chart.register(...registerables);
+
+interface Departamento {
   id: number;
-  mensaje: string;
-  destinatario: string;
-  fecha: Date;
-  leido: boolean;
-  prioridad: Prioridad;
+  nombre: string;
+  provincias: Provincia[];
 }
-const tareasMock: Tarea[] = [
-  {
-    id: 1,
-    mensaje: 'Revisión de documento importante',
-    destinatario: 'Juan Pérez',
-    leido: false,
-    prioridad: 'Alta',
-    fecha: new Date(),
-  },
-];
+
+interface Provincia {
+  id: number;
+  nombre: string;
+  distritos: Distrito[];
+}
+
+interface Distrito {
+  id: number;
+  nombre: string;
+}
+
+interface Task {
+  id?: number;
+  title: string;
+  description: string;
+  department?: string;
+  province?: string;
+  district: string;
+  status: 'pendiente' | 'en_progreso' | 'completada';
+  dueDate: Date;
+}
 
 @Component({
-  selector: 'app-tareas',
+  selector: 'app-tasks',
   standalone: true,
+  templateUrl: './tareas.component.html',
+  styleUrls: ['./tareas.component.scss'],
   imports: [
     CommonModule,
     FormsModule,
-    TableModule,
-    TagModule,
     DialogModule,
-    ButtonModule,
     ToastModule,
-    ToolbarModule,
-    AvatarModule,
-    BadgeModule,
     DropdownModule,
-    InputTextModule,
+    ButtonModule,
+    CalendarModule,
+    InputTextModule
   ],
-  template: `
-    <p-toast position="top-right"></p-toast>
-    <div class="contenedor">
-      <div class="header">
-        <h2><i class="pi pi-tasks mr-2"></i>Gestor de Tareas</h2>
-        <div class="actions">
-          <input
-            type="text"
-            [(ngModel)]="filtroBusqueda"
-            (input)="filtrarTareas()"
-            placeholder="Buscar tareas..."
-            class="search-input"
-          />
-          <button
-            pButton
-            icon="pi pi-plus"
-            label="Nueva Tarea"
-            class="p-button-sm"
-            (click)="abrirDialogoNuevaTarea()"
-          ></button>
-        </div>
-      </div>
-      <p-table
-        [value]="tareasFiltradas"
-        [paginator]="true"
-        [rows]="10"
-        scrollHeight="400px"
-      >
-        <ng-template pTemplate="header"
-          ><tr>
-            <th>ID</th>
-            <th>Mensaje</th>
-            <th>Destinatario</th>
-            <th>Fecha</th>
-            <th>Prioridad</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr></ng-template
-        >
-        <ng-template pTemplate="body" let-tarea>
-          <tr [class.row-leida]="tarea.leido">
-            <td>{{ tarea.id }}</td>
-            <td>{{ tarea.mensaje }}</td>
-            <td>
-              <p-avatar
-                [label]="tarea.destinatario.charAt(0)"
-                shape="circle"
-                styleClass="bg-blue-500 text-white"
-              ></p-avatar>
-              {{ tarea.destinatario }}
-            </td>
-            <td>{{ tarea.fecha | date : 'mediumDate' }}</td>
-            <td>
-              <p-tag
-                [value]="tarea.prioridad"
-                [severity]="obtenerColorPrioridad(tarea.prioridad)"
-              ></p-tag>
-            </td>
-            <td>
-              <p-tag
-                [value]="tarea.leido ? 'Leído' : 'Pendiente'"
-                [severity]="tarea.leido ? 'success' : 'warn'"
-              ></p-tag>
-            </td>
-            <td>
-              <button
-                pButton
-                icon="pi pi-eye"
-                class="p-button-rounded p-button-info p-button-sm"
-                (click)="marcarComoLeido(tarea)"
-              ></button>
-              <button
-                pButton
-                icon="pi pi-pencil"
-                class="p-button-rounded p-button-warning p-button-sm"
-                (click)="abrirDialogoEditarTarea(tarea)"
-              ></button>
-              <button
-                pButton
-                icon="pi pi-trash"
-                class="p-button-rounded p-button-danger p-button-sm"
-                (click)="confirmarEliminarTarea(tarea)"
-              ></button>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
-
-    <p-dialog
-      [(visible)]="mostrarDialog"
-      [modal]="true"
-      [style]="{ width: '600px' }"
-      [header]="modoEditar ? 'Editar Tarea' : 'Nueva Tarea'"
-      (onHide)="resetearFormulario()"
-    >
-      <form (ngSubmit)="guardarTarea(tareaForm)" #tareaForm="ngForm">
-        <div class="p-fluid">
-          <div>
-            <label>Destinatario</label>
-            <input
-              type="text"
-              [(ngModel)]="tareaActual.destinatario"
-              name="destinatario"
-              required
-              minlength="3"
-              maxlength="50"
-            />
-          </div>
-          <div>
-            <label>Mensaje</label>
-            <textarea
-              [(ngModel)]="tareaActual.mensaje"
-              name="mensaje"
-              rows="4"
-              required
-              minlength="5"
-              maxlength="500"
-              class="custom-textarea"
-            ></textarea>
-            <small>{{ tareaActual.mensaje?.length || 0 }}/500</small>
-          </div>
-          <div>
-            <label>Prioridad</label>
-            <p-dropdown
-              [options]="prioridades"
-              [(ngModel)]="tareaActual.prioridad"
-              name="prioridad"
-            ></p-dropdown>
-          </div>
-        </div>
-        <ng-template pTemplate="footer">
-          <button
-            pButton
-            type="button"
-            label="Cancelar"
-            class="p-button-text"
-            (click)="mostrarDialog = false"
-          ></button>
-          <button
-            pButton
-            type="submit"
-            [label]="modoEditar ? 'Actualizar' : 'Guardar'"
-            class="p-button-success"
-          ></button>
-        </ng-template>
-      </form>
-    </p-dialog>
-
-    <p-dialog
-      [(visible)]="mostrarConfirmacionEliminar"
-      [modal]="true"
-      [style]="{ width: '450px' }"
-      header="Confirmar eliminación"
-    >
-      <div>
-        <i class="pi pi-exclamation-triangle"></i> ¿Eliminar tarea ID:
-        {{ tareaAEliminar?.id }}?
-      </div>
-      <ng-template pTemplate="footer">
-        <button
-          pButton
-          label="Cancelar"
-          class="p-button-text"
-          (click)="mostrarConfirmacionEliminar = false"
-        ></button>
-        <button
-          pButton
-          label="Eliminar"
-          class="p-button-danger"
-          (click)="eliminarTarea()"
-        ></button>
-      </ng-template>
-    </p-dialog>
-  `,
-  styles: [
-    `
-      .contenedor {
-        max-width: 80%;
-        min-width: 1150px;
-        margin: auto;
-        padding: 20px;
-        background: #fff;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      }
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .actions {
-        display: flex;
-        gap: 10px;
-      }
-      .search-input {
-        width: 200px;
-      }
-      .custom-textarea {
-        width: 100%;
-        resize: vertical;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 0.5rem;
-      }
-    `,
-  ],
-  providers: [MessageService],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [MessageService]
 })
 export class TareasComponent implements OnInit {
-  tareas: Tarea[] = tareasMock;
-  tareasFiltradas: Tarea[] = [];
-  filtroBusqueda = '';
-  mostrarDialog = false;
-  mostrarConfirmacionEliminar = false;
-  tareaActual: Partial<Tarea> = this.crearTareaVacia();
-  tareaAEliminar: Tarea | null = null;
-  modoEditar = false;
-  prioridades = [
-    { label: 'Alta', value: 'Alta' },
-    { label: 'Media', value: 'Media' },
-    { label: 'Baja', value: 'Baja' },
+
+  selectedFilterDepartment: Departamento | null = null;
+  selectedFilterProvince: Provincia | null = null;
+  selectedFilterDistrict: Distrito | null = null;
+
+  filteredProvincias: Provincia[] = [];
+  filteredDistritos: Distrito[] = [];
+
+
+  tasks: Task[] = [];
+  departamentos: Departamento[] = [];
+  provincias: Provincia[] = [];
+  distritos: Distrito[] = [];
+  
+  selectedDepartment: any;
+  selectedProvince: any;
+  selectedDistrict: any;
+  
+  chart: any;
+
+  // Form variables
+  displayDialog: boolean = false;
+  currentTask: Task = this.emptyTask();
+  editMode: boolean = false;
+
+  // Status options
+  statusOptions = [
+    { label: 'Pendiente', value: 'pendiente' },
+    { label: 'En Progreso', value: 'en_progreso' },
+    { label: 'Completada', value: 'completada' }
   ];
 
-  constructor(private ms: MessageService) {}
-  ngOnInit() {
-    this.filtrarTareas();
-  }
-  crearTareaVacia(): Partial<Tarea> {
-    return {
-      id: 0,
-      mensaje: '',
-      destinatario: '',
-      fecha: new Date(),
-      leido: false,
-      prioridad: 'Media',
-    };
-  }
-  filtrarTareas() {
-    this.tareasFiltradas = this.filtroBusqueda
-      ? this.tareas.filter(
-          (t) =>
-            t.mensaje
-              .toLowerCase()
-              .includes(this.filtroBusqueda.toLowerCase()) ||
-            t.destinatario
-              .toLowerCase()
-              .includes(this.filtroBusqueda.toLowerCase())
-        )
-      : [...this.tareas];
-  }
-  abrirDialogoNuevaTarea() {
-    this.modoEditar = false;
-    this.tareaActual = this.crearTareaVacia();
-    this.mostrarDialog = true;
-  }
-  abrirDialogoEditarTarea(t: Tarea) {
-    this.modoEditar = true;
-    this.tareaActual = { ...t };
-    this.mostrarDialog = true;
-  }
-  guardarTarea(f: NgForm) {
-    if (f.invalid)
-      return this.ms.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Complete todos los campos correctamente',
-      });
-    const nueva = {
-      ...this.tareaActual,
-      id: this.modoEditar ? this.tareaActual.id! : this.generarId(),
-      fecha: new Date(),
-      leido: false,
-    } as Tarea;
-    this.modoEditar ? this.actualizarTarea(nueva) : this.agregarTarea(nueva);
-    this.resetearFormulario();
-  }
-  generarId() {
-    return Math.max(...this.tareas.map((t) => t.id), 0) + 1;
-  }
-  actualizarTarea(t: Tarea) {
-    const i = this.tareas.findIndex((x) => x.id === t.id);
-    if (i !== -1) this.tareas[i] = t;
-    this.ms.add({
-      severity: 'success',
-      summary: 'Actualizada',
-      detail: 'La tarea fue actualizada',
-    });
-    this.filtrarTareas();
-  }
-  agregarTarea(t: Tarea) {
-    this.tareas.unshift(t);
-    this.ms.add({
-      severity: 'success',
-      summary: 'Guardada',
-      detail: 'La nueva tarea fue guardada',
-    });
-    this.filtrarTareas();
-  }
-  resetearFormulario() {
-    this.mostrarDialog = false;
-    this.tareaActual = this.crearTareaVacia();
-  }
-  confirmarEliminarTarea(t: Tarea) {
-    this.tareaAEliminar = t;
-    this.mostrarConfirmacionEliminar = true;
-  }
-  eliminarTarea() {
-    this.tareas = this.tareas.filter((t) => t.id !== this.tareaAEliminar?.id);
-    this.ms.add({
-      severity: 'success',
-      summary: 'Eliminada',
-      detail: 'Tarea eliminada',
-    });
-    this.mostrarConfirmacionEliminar = false;
-    this.filtrarTareas();
-  }
-  marcarComoLeido(t: Tarea) {
-    t.leido = true;
-  }
-  obtenerColorPrioridad(prioridad: Prioridad): "success" | "warn" | "danger" {
-    const colores: Record<Prioridad, "success" | "warn" | "danger"> = {
-      Alta: "danger",
-      Media: "warn",
-      Baja: "success"
-    };
-    return colores[prioridad];
+  constructor(
+    private taskService: TaskService,
+    private departamentoService: DepartamentoService,
+    private messageService: MessageService
+  ) { }
+
+  ngOnInit(): void {
+    this.loadDepartamentos();
+    this.loadTasks();
+    this.loadMockDepartamentos(); // Usaremos datos simulados
   }
 
+  emptyTask(): Task {
+    return {
+      title: '',
+      description: '',
+      district: '',
+      status: 'pendiente',
+      dueDate: new Date()
+    };
+  }
+
+  loadDepartamentos(): void {
+    this.departamentoService.listarDepartamentos().subscribe({
+      next: (departamentos) => {
+        this.departamentos = departamentos;
+      },
+      error: (error) => {
+        console.error('Error al cargar departamentos', error);
+      }
+    });
+  }
+
+  onDepartmentChange(): void {
+    this.provincias = this.selectedDepartment?.provincias || [];
+    this.selectedProvince = null;
+    this.distritos = [];
+    this.selectedDistrict = null;
+    
+    // Actualizar el modelo de la tarea
+    this.currentTask.department = this.selectedDepartment?.nombre;
+    this.currentTask.province = '';
+    this.currentTask.district = '';
+  }
+
+  onProvinceChange(): void {
+    this.distritos = this.selectedProvince?.distritos || [];
+    this.selectedDistrict = null;
+    
+    // Actualizar el modelo de la tarea
+    this.currentTask.province = this.selectedProvince?.nombre;
+    this.currentTask.district = '';
+  }
+
+  onDistrictChange(): void {
+    // Actualizar el modelo de la tarea
+    this.currentTask.district = this.selectedDistrict?.nombre;
+  }
+
+  allTasks: Task[] = [];
+
+loadTasks(): void {
+  this.taskService.getAllTasks().subscribe({
+    next: (data) => {
+      this.allTasks = data;
+      this.tasks = [...data];
+      this.updateChart();
+    },
+    error: (error) => {
+      console.error('Error loading tasks', error);
+    }
+  });
+}
+
+filterByDistrict(): void {
+  if (this.selectedFilterDistrict) {
+    this.tasks = this.allTasks.filter(task => task.district === this.selectedFilterDistrict!.nombre);
+  } else {
+    this.tasks = [...this.allTasks];
+  }
+  this.updateChart();
+}
+
+    
+  showAddDialog(): void {
+    this.currentTask = this.emptyTask();
+    this.selectedDepartment = null;
+    this.selectedProvince = null;
+    this.selectedDistrict = null;
+    this.provincias = [];
+    this.distritos = [];
+    this.editMode = false;
+    this.displayDialog = true;
+  }
+
+  showEditDialog(task: Task): void {
+    this.currentTask = { ...task };
+    
+    // Buscar y establecer los valores seleccionados para edición
+    if (task.department) {
+      this.selectedDepartment = this.departamentos.find(d => d.nombre === task.department);
+      if (this.selectedDepartment) {
+        this.provincias = this.selectedDepartment.provincias;
+        
+        if (task.province) {
+          this.selectedProvince = this.provincias.find(p => p.nombre === task.province);
+          if (this.selectedProvince) {
+            this.distritos = this.selectedProvince.distritos;
+            
+            if (task.district) {
+              this.selectedDistrict = this.distritos.find(d => d.nombre === task.district);
+            }
+          }
+        }
+      }
+    }
+    
+    this.editMode = true;
+    this.displayDialog = true;
+  }
+
+  // Resto de los métodos permanecen iguales...
+  saveTask(): void {
+    if (this.editMode) {
+      this.taskService.updateTask(this.currentTask).subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Tarea actualizada correctamente'
+          });
+          this.loadTasks();
+          this.displayDialog = false;
+        },
+        error: (error) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al actualizar tarea'
+          });
+        }
+      });
+    } else {
+      this.taskService.createTask(this.currentTask).subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Tarea creada correctamente'
+          });
+          this.loadTasks();
+          this.displayDialog = false;
+        },
+        error: (error) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al crear tarea'
+          });
+        }
+      });
+    }
+  }
+
+  deleteTask(taskId: number): void {
+    this.taskService.deleteTask(taskId).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: 'Tarea eliminada correctamente'
+        });
+        this.loadTasks();
+      },
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al eliminar tarea'
+        });
+      }
+    });
+  }
+
+  updateChart(): void {
+    if (this.chart) {
+      this.chart.destroy();
+    }
+
+    const ctx = document.getElementById('taskChart') as HTMLCanvasElement;
+    const statusCounts = {
+      pendiente: 0,
+      en_progreso: 0,
+      completada: 0
+    };
+
+    this.tasks.forEach(task => {
+      statusCounts[task.status]++;
+    });
+
+    this.chart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Pendientes', 'En Progreso', 'Completadas'],
+        datasets: [{
+          data: [statusCounts.pendiente, statusCounts.en_progreso, statusCounts.completada],
+          backgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#4BC0C0'
+          ],
+          hoverBackgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#4BC0C0'
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Estado de Tareas'
+          }
+        }
+      }
+    });
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'pendiente':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'en_progreso':
+        return 'bg-blue-100 text-blue-800';
+      case 'completada':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'pendiente':
+        return 'Pendiente';
+      case 'en_progreso':
+        return 'En Progreso';
+      case 'completada':
+        return 'Completada';
+      default:
+        return status;
+    }
+  }
+
+  loadMockDepartamentos(): void {
+    this.departamentos = [
+      {
+        id: 1,
+        nombre: 'Lima',
+        provincias: [
+          {
+            id: 11,
+            nombre: 'Lima Metropolitana',
+            distritos: [
+              { id: 111, nombre: 'Miraflores' },
+              { id: 112, nombre: 'San Isidro' }
+            ]
+          },
+          {
+            id: 12,
+            nombre: 'Huaral',
+            distritos: [
+              { id: 121, nombre: 'Chancay' },
+              { id: 122, nombre: 'Aucallama' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 2,
+        nombre: 'Cusco',
+        provincias: [
+          {
+            id: 21,
+            nombre: 'Cusco',
+            distritos: [
+              { id: 211, nombre: 'San Sebastián' },
+              { id: 212, nombre: 'Wanchaq' }
+            ]
+          }
+        ]
+      }
+    ];
+  }
+
+  onFilterDepartmentChange(): void {
+    this.selectedFilterProvince = null;
+    this.selectedFilterDistrict = null;
+    this.filteredProvincias = this.selectedFilterDepartment?.provincias || [];
+    this.filteredDistritos = [];
+    this.tasks = [...this.allTasks]; // Reinicia
+  }
+  
+  onFilterProvinceChange(): void {
+    this.selectedFilterDistrict = null;
+    this.filteredDistritos = this.selectedFilterProvince?.distritos || [];
+    this.tasks = [...this.allTasks]; // Reinicia
+  }
+  
+  
 }

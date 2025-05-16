@@ -1,0 +1,268 @@
+<div class="contenedor">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Gestión de Novedades</h1>
+      <button 
+        pButton 
+        icon="pi pi-plus" 
+        label="Nueva Novedad" 
+        class="p-button-success"
+        (click)="showAddDialog()">
+      </button>
+    </div>
+  
+    <p-toast></p-toast>
+  
+    <!-- Filtros -->
+    <div class="card mb-6 p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Filtrar por Ubicación</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+          <p-dropdown 
+            [options]="departamentos" 
+            optionLabel="nombre" 
+            [(ngModel)]="selectedFilterDepartment"
+            (onChange)="onFilterDepartmentChange()"
+            placeholder="Seleccione departamento">
+          </p-dropdown>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+          <p-dropdown 
+            [options]="filteredProvincias" 
+            optionLabel="nombre" 
+            [(ngModel)]="selectedFilterProvince"
+            (onChange)="onFilterProvinceChange()"
+            [disabled]="!selectedFilterDepartment"
+            placeholder="Seleccione provincia">
+          </p-dropdown>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
+          <p-dropdown 
+            [options]="filteredDistritos" 
+            optionLabel="nombre" 
+            [(ngModel)]="selectedFilterDistrict"
+            (onChange)="onFilterDistrictChange()"
+            [disabled]="!selectedFilterProvince"
+            placeholder="Seleccione distrito">
+          </p-dropdown>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Gráfico -->
+    <div class="card mb-6 p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Estadísticas</h2>
+      <div class="w-full h-80">
+        <canvas id="novedadesChart"></canvas>
+      </div>
+    </div>
+  
+    <!-- Lista de Novedades -->
+    <div class="card p-4 bg-gray-50 rounded-lg">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Listado de Novedades</h2>
+      
+      <div *ngIf="novedades.length === 0" class="text-center py-8 text-gray-500">
+        No se encontraron novedades con los filtros aplicados
+      </div>
+  
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p-card *ngFor="let novedad of novedades" class="shadow-md hover:shadow-lg transition-shadow">
+          <ng-template pTemplate="header">
+            <div class="relative h-40 bg-gray-200 overflow-hidden">
+              <img 
+                *ngIf="novedad.foto" 
+                [src]="novedad.foto" 
+                alt="Imagen de novedad" 
+                class="w-full h-full object-cover">
+              <div 
+                *ngIf="!novedad.foto" 
+                class="w-full h-full flex items-center justify-center text-gray-400">
+                <i class="pi pi-image text-4xl"></i>
+              </div>
+              <span 
+                class="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold"
+                [ngClass]="getCategoriaClass(novedad.categoria)">
+                {{ getCategoriaLabel(novedad.categoria) }}
+              </span>
+            </div>
+          </ng-template>
+          
+          <h3 class="text-lg font-semibold mb-2">{{ novedad.titulo }}</h3>
+          <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{ novedad.descripcion }}</p>
+          
+          <div class="flex justify-between items-center text-sm text-gray-500">
+            <span>
+              <i class="pi pi-map-marker mr-1"></i>
+              {{ novedad.distrito }}, {{ novedad.provincia }}
+            </span>
+            <span>
+              <i class="pi pi-calendar mr-1"></i>
+              {{ novedad.fecha | date:'shortDate' }}
+            </span>
+          </div>
+          
+          <ng-template pTemplate="footer">
+            <div class="flex justify-end gap-2">
+              <button 
+                pButton 
+                icon="pi pi-pencil" 
+                class="p-button-rounded p-button-text p-button-secondary"
+                (click)="showEditDialog(novedad)">
+              </button>
+              <button 
+                pButton 
+                icon="pi pi-trash" 
+                class="p-button-rounded p-button-text p-button-danger"
+                (click)="deleteNovedad(novedad.id!)">
+              </button>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
+    </div>
+  </div>
+  
+  
+  <!-- Dialogo de Novedad -->
+  <p-dialog 
+    [(visible)]="displayDialog" 
+    [style]="{width: '600px'}" 
+    [modal]="true" 
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="true"
+    header="{{editMode ? 'Editar Novedad' : 'Nueva Novedad'}}">
+    
+    <form (ngSubmit)="saveNovedad()" class="p-fluid">
+      <div class="grid grid-cols-1 gap-4">
+        <!-- Categoría -->
+        <div class="field">
+          <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <p-dropdown 
+            id="categoria"
+            [options]="categoriaOptions" 
+            optionLabel="label" 
+            optionValue="value"
+            [(ngModel)]="currentNovedad.categoria"
+            name="categoria"
+            placeholder="Seleccione categoría">
+          </p-dropdown>
+        </div>
+        
+        <!-- Título -->
+        <div class="field">
+          <label for="titulo" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+          <input 
+            id="titulo"
+            pInputText 
+            [(ngModel)]="currentNovedad.titulo" 
+            name="titulo"
+            required
+            placeholder="Ingrese título">
+        </div>
+        
+        <!-- Descripción -->
+        <div class="field">
+          <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+          <textarea 
+            id="descripcion"
+            pInputTextarea 
+            [(ngModel)]="currentNovedad.descripcion" 
+            name="descripcion"
+            rows="3"
+            required
+            placeholder="Ingrese descripción">
+          </textarea>
+        </div>
+        
+        <!-- Ubicación -->
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+          <div class="field">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+            <p-dropdown 
+              [options]="departamentos" 
+              optionLabel="nombre" 
+              [(ngModel)]="selectedDepartment"
+              (onChange)="onDepartmentChange()"
+              name="departamento"
+              placeholder="Seleccione departamento">
+            </p-dropdown>
+          </div>
+          
+          <div class="field">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+            <p-dropdown 
+              [options]="provincias" 
+              optionLabel="nombre" 
+              [(ngModel)]="selectedProvince"
+              (onChange)="onProvinceChange()"
+              [disabled]="!selectedDepartment"
+              name="provincia"
+              placeholder="Seleccione provincia">
+            </p-dropdown>
+          </div>
+          
+          <div class="field">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
+            <p-dropdown 
+              [options]="distritos" 
+              optionLabel="nombre" 
+              [(ngModel)]="selectedDistrict"
+              (onChange)="onDistrictChange()"
+              [disabled]="!selectedProvince"
+              name="distrito"
+              placeholder="Seleccione distrito">
+            </p-dropdown>
+          </div>
+        </div>
+        
+        <!-- Fecha -->
+        <div class="field">
+          <label for="fecha" class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+          <p-calendar 
+            id="fecha"
+            [(ngModel)]="currentNovedad.fecha" 
+            name="fecha"
+            [showIcon]="true"
+            dateFormat="dd/mm/yy"
+            required>
+          </p-calendar>
+        </div>
+        
+        <!-- Imagen -->
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Imagen (Opcional)</label>
+          <p-fileUpload 
+            mode="basic"
+            name="foto"
+            accept="image/*"
+            chooseLabel="Seleccionar imagen"
+            (onSelect)="onFileSelect($event)"
+            maxFileSize="1000000">
+          </p-fileUpload>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-2 mt-4">
+        <button 
+          pButton 
+          type="button" 
+          label="Cancelar" 
+          icon="pi pi-times"
+          class="p-button-text"
+          (click)="displayDialog = false">
+        </button>
+        <button 
+          pButton 
+          type="submit" 
+          label="Guardar" 
+          icon="pi pi-check"
+          class="p-button-success">
+        </button>
+      </div>
+    </form>
+  </p-dialog>

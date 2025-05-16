@@ -1,0 +1,1423 @@
+
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/MainActivity.kt =====
+package com.knarf.sise
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.knarf.sise.api.RetrofitClient
+import com.knarf.sise.api.VerificationRequest
+import com.knarf.sise.api.VerificationResponse
+import com.knarf.sise.databinding.ActivityMainBinding
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.btnIniciarSesion.setOnClickListener {
+            val email = binding.etCorreoLogin.text.toString().trim()
+            val dni = binding.etDni.text.toString().trim()
+
+            when {
+                email.isEmpty() -> binding.etCorreoLogin.error = "El correo es obligatorio"
+                dni.isEmpty() -> binding.etDni.error = "El DNI es obligatorio"
+                else -> sendVerificationCode(email, dni)
+            }
+        }
+    }
+
+    private fun sendVerificationCode(email: String, dni: String) {
+        binding.btnIniciarSesion.isEnabled = false // Deshabilitar botón durante la solicitud
+
+        val request = VerificationRequest(email = email, dni = dni)
+
+        RetrofitClient.instance.sendVerificationCode(request)
+            .enqueue(object : Callback<VerificationResponse> {
+                override fun onResponse(
+                    call: Call<VerificationResponse>,
+                    response: Response<VerificationResponse>
+                ) {
+                    binding.btnIniciarSesion.isEnabled = true
+
+                    if (response.isSuccessful) {
+                        response.body()?.let {
+                            if (it.success) {
+                                val intent = Intent(this@MainActivity, VerificacionActivity::class.java).apply {
+                                    putExtra("email", email)
+                                    putExtra("dni", dni)
+                                }
+                                startActivity(intent)
+                            } else {
+                                showError(it.error ?: "Error al enviar el código")
+                            }
+                        }
+                    } else {
+                        showError("Error del servidor: ${response.code()} - ${response.errorBody()?.string()}")
+                    }
+                }
+
+                override fun onFailure(call: Call<VerificationResponse>, t: Throwable) {
+                    binding.btnIniciarSesion.isEnabled = true
+                    showError("Error de conexión: ${t.message}\nVerifica que estés en la misma red WiFi")
+                    Log.e("API_ERROR", "Error detallado", t)
+                }
+            })
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/HomeActivity.kt =====
+package com.knarf.sise
+
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
+import android.graphics.drawable.LayerDrawable
+import android.os.Bundle
+import android.view.Menu
+import android.view.View
+import android.view.animation.AlphaAnimation
+import android.view.animation.AnimationUtils
+import android.widget.ImageView
+import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.navigation.NavigationView
+import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.navigateUp
+import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.navigation.ui.setupWithNavController
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.knarf.sise.databinding.ActivityHomeBinding
+
+class HomeActivity : AppCompatActivity() {
+
+    private lateinit var appBarConfiguration: AppBarConfiguration
+    private lateinit var binding: ActivityHomeBinding
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+
+
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setSupportActionBar(binding.appBarHome.toolbar)
+
+        binding.appBarHome.fab.setOnClickListener { view ->
+            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                .setAction("Action", null)
+                .setAnchorView(R.id.fab).show()
+        }
+        val drawerLayout: DrawerLayout = binding.drawerLayout
+        val navView: NavigationView = binding.navView
+        val navController = findNavController(R.id.nav_host_fragment_content_home)
+        // Passing each menu ID as a set of Ids because each
+        // menu should be considered as top level destinations.
+
+
+        // Aplicar animación de brillo al rojo
+
+        appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow, R.id.nav_novedades, R.id.nav_miembros
+            ), drawerLayout
+        )
+        setupActionBarWithNavController(navController, appBarConfiguration)
+        navView.setupWithNavController(navController)
+
+
+        // Agrega el listener para el ítem de salir
+        navView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_exit -> {
+                    // Mostrar diálogo de confirmación
+                    showExitConfirmationDialog()
+                    true
+                }
+                else -> {
+                    // Manejar otros ítems normalmente
+                    menuItem.isChecked = true
+                    drawerLayout.closeDrawers()
+                    navController.navigate(menuItem.itemId)
+                    true
+                }
+            }
+        }
+
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.home, menu)
+        return true
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment_content_home)
+        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+
+
+
+    private fun showExitConfirmationDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Cerrar sesión")
+            .setMessage("¿Estás seguro de que deseas salir?")
+            .setPositiveButton("Sí") { _, _ ->
+                // Redirige al login (MainActivity)
+                val intent = Intent(this, MainActivity::class.java)
+
+                // Limpia el stack de actividades para evitar volver atrás
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+
+                startActivity(intent)
+                finish() // Cierra la actividad actual
+            }
+            .setNegativeButton("No", null)
+            .show()
+    }
+
+
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/VerificacionActivity.kt =====
+package com.knarf.sise
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.knarf.sise.api.CodeVerificationRequest
+import com.knarf.sise.api.RetrofitClient
+import com.knarf.sise.api.VerificationResponse
+import com.knarf.sise.databinding.ActivityVerificacionBinding
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+class VerificacionActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityVerificacionBinding
+    private lateinit var email: String
+    private lateinit var dni: String
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityVerificacionBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        email = intent.getStringExtra("email") ?: run {
+            Toast.makeText(this, "Error: Correo no proporcionado", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
+        dni = intent.getStringExtra("dni") ?: run {
+            Toast.makeText(this, "Error: DNI no proporcionado", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
+        binding.btnVerificar.setOnClickListener {
+            val codigo = binding.etCodigo.text.toString().trim()
+            if (codigo.isEmpty()) {
+                binding.etCodigo.error = "El código es obligatorio"
+            } else {
+                verifyCode(codigo)
+            }
+        }
+    }
+
+    private fun verifyCode(codigo: String) {
+        val request = CodeVerificationRequest(email = email, code = codigo)
+
+        RetrofitClient.instance.verifyCode(request)
+            .enqueue(object : Callback<VerificationResponse> {
+                override fun onResponse(
+                    call: Call<VerificationResponse>,
+                    response: Response<VerificationResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        response.body()?.let {
+                            if (it.success) {
+                                // Verificación exitosa, ir a la siguiente pantalla
+                                Toast.makeText(this@VerificacionActivity, "Verificación exitosa", Toast.LENGTH_SHORT).show()
+                                // Aquí puedes navegar a la siguiente actividad
+                                // val intent = Intent(this@VerificacionActivity, HomeActivity::class.java)
+                                // startActivity(intent)
+                                // finish()
+                            } else {
+                                showError(it.error ?: "Error en la verificación")
+                            }
+                        }
+                    } else {
+                        showError("Error del servidor: ${response.code()}")
+                    }
+                }
+
+                override fun onFailure(call: Call<VerificationResponse>, t: Throwable) {
+                    showError("Error de conexión: ${t.message}")
+                }
+            })
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        binding.etCodigo.error = "Código incorrecto"
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/User.kt =====
+package com.knarf.sise.api
+
+data class User(
+    val email: String,
+    val dni: String? = null,
+    val code: String? = null
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/ApiService.kt =====
+package com.knarf.sise.api
+
+import retrofit2.Call
+import retrofit2.http.Body
+import retrofit2.http.POST
+
+interface ApiService {
+    @POST("auth/send-code")
+    fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
+
+    @POST("auth/verify-code")
+    fun verifyCode(@Body request: CodeVerificationRequest): Call<VerificationResponse>
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/RetrofitClient.kt =====
+package com.knarf.sise.api
+
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+object RetrofitClient {
+    private const val BASE_URL = "http://192.168.18.101:8080/api/"
+
+    val instance: ApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/VerificationResponse.kt =====
+package com.knarf.sise.api
+
+data class VerificationResponse(
+    val success: Boolean,
+    val message: String?,
+    val error: String?
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/VerificationRequest.kt =====
+package com.knarf.sise.api
+
+data class VerificationRequest(
+    val email: String,
+    val dni: String
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/CodeVerificationRequest.kt =====
+package com.knarf.sise.api
+
+data class CodeVerificationRequest(
+    val email: String,
+    val code: String
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/RegistroInicialRequest.kt =====
+package com.knarf.sise.api
+
+data class RegistroInicialRequest(
+    val dni: String,
+    val correo: String
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/api/RegistroUsuarioRequest.kt =====
+package com.knarf.sise.api
+
+data class RegistroUsuarioRequest(
+    val dni: String,
+    val nombre: String,
+    val apellidoPaterno: String,
+    val apellidoMaterno: String,
+    val contrasenia: String,
+    val correo: String,
+    val telefono: String,
+    val idDistrito: Int,
+    val idRol: Long,
+    val dniRegistrador: String? = null
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/home/HomeFragment.kt =====
+package com.knarf.sise.ui.home
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import com.knarf.sise.databinding.FragmentHomeBinding
+
+class HomeFragment : Fragment() {
+
+    private var _binding: FragmentHomeBinding? = null
+
+    // This property is only valid between onCreateView and
+    // onDestroyView.
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val homeViewModel =
+            ViewModelProvider(this).get(HomeViewModel::class.java)
+
+        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        val root: View = binding.root
+
+
+        return root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/home/HomeViewModel.kt =====
+package com.knarf.sise.ui.home
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+
+class HomeViewModel : ViewModel() {
+
+    private val _text = MutableLiveData<String>().apply {
+        value = "This is home Fragment"
+    }
+    val text: LiveData<String> = _text
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/red/RedFragment.kt =====
+package com.knarf.sise.ui.red
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import com.knarf.sise.databinding.FragmentRedBinding
+
+class RedFragment : Fragment() {
+
+    private var _binding: FragmentRedBinding? = null
+
+    // This property is only valid between onCreateView and
+    // onDestroyView.
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val galleryViewModel =
+            ViewModelProvider(this).get(RedViewModel::class.java)
+
+        _binding = FragmentRedBinding.inflate(inflater, container, false)
+        val root: View = binding.root
+
+        val textView: TextView = binding.textGallery
+        galleryViewModel.text.observe(viewLifecycleOwner) {
+            textView.text = it
+        }
+        return root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/red/RedViewModel.kt =====
+package com.knarf.sise.ui.red
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+
+class RedViewModel : ViewModel() {
+
+    private val _text = MutableLiveData<String>().apply {
+        value = "Registrar a mi Red"
+    }
+    val text: LiveData<String> = _text
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/tarea/TareaFragment.kt =====
+package com.knarf.sise.ui.tarea
+
+import android.os.Bundle
+import android.view.*
+import android.widget.Toast
+import androidx.appcompat.widget.PopupMenu
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.knarf.sise.R
+import com.knarf.sise.databinding.FragmentTareaBinding
+
+class TareaFragment : Fragment() {
+
+    private var _binding: FragmentTareaBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var tareaAdapter: TareaAdapter
+    private var currentFilter = "Todas"
+    private var currentSort = "Prioridad"
+    private var currentTaskList = mutableListOf<Tarea>() // Lista de respaldo
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentTareaBinding.inflate(inflater, container, false)
+        setHasOptionsMenu(true)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        currentTaskList = getSampleTasks().toMutableList()
+        setupRecyclerView()
+        setupSwipeRefresh()
+        setupFab()
+    }
+
+    private fun setupRecyclerView() {
+        tareaAdapter = TareaAdapter(currentTaskList) { tarea ->
+            showTaskDetails(tarea)
+        }
+
+        binding.rvTareas.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = tareaAdapter
+            addItemDecoration(
+                DividerItemDecoration(
+                    requireContext(),
+                    LinearLayoutManager.VERTICAL
+                ).apply {
+                    setDrawable(resources.getDrawable(R.drawable.divider_tareas, null))
+                }
+            )
+
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (dy > 0 && binding.fabAddTask.isShown) {
+                        binding.fabAddTask.hide()
+                    } else if (dy < 0 && !binding.fabAddTask.isShown) {
+                        binding.fabAddTask.show()
+                    }
+                }
+            })
+        }
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeResources(
+            R.color.primary_blue,
+            R.color.primary_pink,
+            R.color.priority_low
+        )
+
+        binding.swipeRefresh.setOnRefreshListener {
+            binding.swipeRefresh.postDelayed({
+                currentTaskList = getSampleTasks().toMutableList()
+                tareaAdapter.updateData(currentTaskList)
+                binding.swipeRefresh.isRefreshing = false
+                Toast.makeText(requireContext(), "Tareas actualizadas", Toast.LENGTH_SHORT).show()
+            }, 1500)
+        }
+    }
+
+    private fun setupFab() {
+        binding.fabAddTask.setOnClickListener {
+            Toast.makeText(requireContext(), "Crear nueva tarea", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+
+
+    private fun filterTasks(filter: String) {
+        val filteredTasks = when (filter) {
+            "Todas" -> getSampleTasks()
+            "Pendiente", "En progreso", "Completada" ->
+                getSampleTasks().filter { it.estado == filter }
+            "Alta" ->
+                getSampleTasks().filter { it.prioridad == "Alta" }
+            else -> getSampleTasks()
+        }
+        currentTaskList = filteredTasks.toMutableList()
+        tareaAdapter.updateData(currentTaskList)
+    }
+
+    private fun sortTasksByPriority() {
+        val priorityOrder = mapOf("Alta" to 1, "Media" to 2, "Baja" to 3)
+        val sortedTasks = currentTaskList.sortedBy {
+            priorityOrder[it.prioridad] ?: 3
+        }
+        currentTaskList = sortedTasks.toMutableList()
+        tareaAdapter.updateData(currentTaskList)
+    }
+
+    private fun sortTasksByDate() {
+        // Implementación básica - ordenar por fecha (asumiendo formato "Hoy, HH:mm - HH:mm")
+        val sortedTasks = currentTaskList.sortedBy {
+            when {
+                it.fechaHora.startsWith("Hoy") -> 0
+                it.fechaHora.startsWith("Mañana") -> 1
+                else -> 2
+            }
+        }
+        currentTaskList = sortedTasks.toMutableList()
+        tareaAdapter.updateData(currentTaskList)
+        Toast.makeText(requireContext(), "Ordenado por fecha", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun sortTasksByStatus() {
+        val statusOrder = mapOf("Pendiente" to 1, "En progreso" to 2, "Completada" to 3)
+        val sortedTasks = currentTaskList.sortedBy {
+            statusOrder[it.estado] ?: 3
+        }
+        currentTaskList = sortedTasks.toMutableList()
+        tareaAdapter.updateData(currentTaskList)
+    }
+
+    private fun getSampleTasks(): List<Tarea> {
+        return listOf(
+            Tarea(
+                id = 1,
+                titulo = "Reunión con equipo de campaña",
+                descripcion = "Planificar estrategias para el evento del sábado",
+                ubicacion = "Oficina Central - Sala 3",
+                fechaHora = "Hoy, 15:00 - 17:00",
+                prioridad = "Alta",
+                estado = "Pendiente"
+            ),
+            Tarea(
+                id = 2,
+                titulo = "Verificar padrón electoral",
+                descripcion = "Revisar listado de votantes asignados al centro de votación",
+                ubicacion = "Centro Escolar República de Argentina",
+                fechaHora = "Mañana, 08:00 - 12:00",
+                prioridad = "Alta",
+                estado = "En progreso"
+            ),
+            Tarea(
+                id = 3,
+                titulo = "Capacitación de voluntarios",
+                descripcion = "Entrenamiento sobre procedimientos de votación",
+                ubicacion = "Oficina regional",
+                fechaHora = "Viernes, 15:00 - 18:00",
+                prioridad = "Media",
+                estado = "Pendiente"
+            ),
+            Tarea(
+                id = 4,
+                titulo = "Visita a comunidad local",
+                descripcion = "Reunión con líderes comunitarios para escuchar necesidades",
+                ubicacion = "Asociación de Vecinos",
+                fechaHora = "Sábado, 09:00 - 12:00",
+                prioridad = "Media",
+                estado = "Pendiente"
+            ),
+            Tarea(
+                id = 5,
+                titulo = "Reporte mensual de actividades",
+                descripcion = "Preparar informe para enviar a coordinación general",
+                ubicacion = "En línea",
+                fechaHora = "01/03 - 10:00",
+                prioridad = "Baja",
+                estado = "Completada"
+            )
+        )
+    }
+
+    private fun showTaskDetails(tarea: Tarea) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(tarea.titulo)
+            .setMessage(
+                """
+                Descripción: ${tarea.descripcion}
+                
+                Ubicación: ${tarea.ubicacion}
+                Fecha/Hora: ${tarea.fechaHora}
+                Prioridad: ${tarea.prioridad}
+                Estado: ${tarea.estado}
+                """.trimIndent()
+            )
+            .setPositiveButton("Aceptar", null)
+            .setNeutralButton("Editar") { _, _ ->
+                Toast.makeText(requireContext(), "Editar tarea ${tarea.id}", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Eliminar") { _, _ ->
+                showDeleteConfirmation(tarea)
+            }
+            .show()
+    }
+
+    private fun showDeleteConfirmation(tarea: Tarea) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Confirmar eliminación")
+            .setMessage("¿Estás seguro de eliminar la tarea '${tarea.titulo}'?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                currentTaskList.remove(tarea)
+                tareaAdapter.updateData(currentTaskList)
+                Toast.makeText(requireContext(), "Tarea eliminada", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_tareas_filter, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/tarea/TareaViewModel.kt =====
+package com.knarf.sise.ui.tarea
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+
+class TareaViewModel : ViewModel() {
+
+    private val _text = MutableLiveData<String>().apply {
+        value = "This is slideshow Fragment"
+    }
+    val text: LiveData<String> = _text
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/tarea/TareaAdapter.kt =====
+package com.knarf.sise.ui.tarea
+
+import android.graphics.Color
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.RecyclerView
+import com.knarf.sise.R
+
+class TareaAdapter(
+    private var tareas: List<Tarea>,
+    private val onItemClick: (Tarea) -> Unit
+) : RecyclerView.Adapter<TareaAdapter.TareaViewHolder>() {
+
+    inner class TareaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val tvTitulo: TextView = itemView.findViewById(R.id.tvTitulo)
+        private val tvDescripcion: TextView = itemView.findViewById(R.id.tvDescripcion)
+        private val tvUbicacion: TextView = itemView.findViewById(R.id.tvUbicacion)
+        private val tvFecha: TextView = itemView.findViewById(R.id.tvFecha)
+        private val tvPrioridad: TextView = itemView.findViewById(R.id.tvPrioridad)
+        private val tvEstado: TextView = itemView.findViewById(R.id.tvEstado)
+        private val ivPrioridad: ImageView = itemView.findViewById(R.id.ivPrioridad)
+        private val ivEstado: ImageView = itemView.findViewById(R.id.ivEstado)
+
+        fun bind(tarea: Tarea) {
+            tvTitulo.text = tarea.titulo
+            tvDescripcion.text = tarea.descripcion
+            tvUbicacion.text = tarea.ubicacion
+            tvFecha.text = tarea.fechaHora
+            tvPrioridad.text = tarea.prioridad
+            tvEstado.text = tarea.estado
+
+            // Configurar colores según prioridad
+            val (priorityColor, priorityIcon) = when(tarea.prioridad) {
+                "Alta" -> Pair(R.color.priority_high, R.drawable.ic_priority_high)
+                "Media" -> Pair(R.color.priority_medium, R.drawable.ic_priority_high)
+                else -> Pair(R.color.priority_low, R.drawable.ic_priority_high)
+            }
+
+            tvPrioridad.setTextColor(ContextCompat.getColor(itemView.context, priorityColor))
+            ivPrioridad.setImageResource(priorityIcon)
+            ivPrioridad.setColorFilter(ContextCompat.getColor(itemView.context, priorityColor))
+
+            // Configurar estado
+            val (statusColor, statusIcon) = when(tarea.estado) {
+                "Completada" -> Pair(R.color.status_completed, R.drawable.ic_check_circle)
+                "En progreso" -> Pair(R.color.status_in_progress, R.drawable.ic_in_progress)
+                else -> Pair(R.color.status_pending, R.drawable.ic_pending)
+            }
+
+            tvEstado.setTextColor(ContextCompat.getColor(itemView.context, statusColor))
+            ivEstado.setImageResource(statusIcon)
+            ivEstado.setColorFilter(ContextCompat.getColor(itemView.context, statusColor))
+
+            itemView.setOnClickListener { onItemClick(tarea) }
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TareaViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_tarea, parent, false)
+        return TareaViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: TareaViewHolder, position: Int) {
+        holder.bind(tareas[position])
+    }
+
+    override fun getItemCount(): Int = tareas.size
+
+    fun updateData(newTareas: List<Tarea>) {
+        tareas = newTareas
+        notifyDataSetChanged()
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/tarea/Tarea.kt =====
+package com.knarf.sise.ui.tarea
+
+data class Tarea(
+    val id: Int,
+    val titulo: String,
+    val descripcion: String,
+    val ubicacion: String,
+    val fechaHora: String,
+    val prioridad: String, // "Alta", "Media", "Baja"
+    val estado: String // "Pendiente", "En progreso", "Completada"
+)
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/novedades/NovedadesFragment.kt =====
+// NovedadesFragment.kt
+package com.knarf.sise.ui.novedades
+
+import android.Manifest
+import android.app.Activity
+import android.content.ContentValues
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.provider.MediaStore
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.knarf.sise.R
+import com.knarf.sise.databinding.FragmentNovedadesBinding
+
+class NovedadesFragment : Fragment() {
+
+    private var _binding: FragmentNovedadesBinding? = null
+    private val binding get() = _binding!!
+    private var selectedCategory: String = ""
+    private var imageUri: Uri? = null
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            openCamera()
+        } else {
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val takePictureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            binding.ivFoto.setImageURI(imageUri)
+            binding.btnEliminarFoto.visibility = View.VISIBLE
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentNovedadesBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        setupCategorySpinner()
+        setupSendButton()
+        setupPhotoButtons()
+    }
+
+    private fun setupCategorySpinner() {
+        val categorias = resources.getStringArray(R.array.categorias_novedades)
+        val adapter = ArrayAdapter(requireContext(), R.layout.spinner_item, categorias)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        binding.spinnerCategoria.adapter = adapter
+        binding.spinnerCategoria.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedCategory = parent?.getItemAtPosition(position).toString()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    private fun setupSendButton() {
+        binding.btnEnviar.setOnClickListener {
+            val descripcion = binding.etDescripcion.text.toString().trim()
+
+            when {
+                descripcion.isEmpty() -> {
+                    binding.etDescripcion.error = "Por favor describe la novedad"
+                }
+                selectedCategory.isEmpty() -> {
+                    Toast.makeText(context, "Selecciona una categoría", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    enviarNovedad(selectedCategory, descripcion)
+                }
+            }
+        }
+    }
+
+    private fun setupPhotoButtons() {
+        binding.btnTomarFoto.setOnClickListener {
+            checkCameraPermissionAndOpenCamera()
+        }
+
+        binding.btnEliminarFoto.setOnClickListener {
+            imageUri = null
+            binding.ivFoto.setImageURI(null)
+            binding.btnEliminarFoto.visibility = View.GONE
+        }
+    }
+
+    private fun checkCameraPermissionAndOpenCamera() {
+        when {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                openCamera()
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
+                showPermissionExplanationDialog()
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
+
+    private fun showPermissionExplanationDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Permiso de cámara necesario")
+            .setMessage("Necesitamos acceso a la cámara para tomar fotos de las novedades")
+            .setPositiveButton("Aceptar") { _, _ ->
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun openCamera() {
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        imageUri = createImageUri()
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+        takePictureLauncher.launch(intent)
+    }
+
+    private fun createImageUri(): Uri? {
+        val context = context ?: return null
+        val contentResolver = context.contentResolver
+        val imageName = "novedad_${System.currentTimeMillis()}.jpg"
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/SISE")
+            }
+        }
+
+        return contentResolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        )
+    }
+    private fun enviarNovedad(categoria: String, descripcion: String) {
+        val mensaje = buildString {
+            append("Novedad enviada:\n")
+            append("Categoría: $categoria\n")
+            append("Descripción: $descripcion\n")
+            if (imageUri != null) {
+                append("(Incluye foto adjunta)")
+            }
+        }
+
+        Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
+        resetForm()
+    }
+
+    private fun resetForm() {
+        binding.etDescripcion.text?.clear()
+        binding.spinnerCategoria.setSelection(0)
+        imageUri = null
+        binding.ivFoto.setImageURI(null)
+        binding.btnEliminarFoto.visibility = View.GONE
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/novedades/NovedadesViewModel.kt =====
+// NovedadesViewModel.kt
+package com.knarf.sise.ui.novedades
+
+import androidx.lifecycle.ViewModel
+
+class NovedadesViewModel : ViewModel() {
+    // Lógica para manejar el envío de novedades
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/miembros/Miembro.kt =====
+// com/knarf/sise/ui/miembro/Miembro.kt
+package com.knarf.sise.ui.miembros
+
+data class Miembro(
+    val id: Int,
+    val dni: String,
+    val nombres: String,
+    val apellidos: String,
+    val correo: String,
+    val fechaNacimiento: String,
+    val sexo: String,
+    val telefono: String,
+    val whatsapp: String? = null, // Nuevo campo
+    val direccion: String,
+    val departamento: String,
+    val provincia: String,
+    val distrito: String,
+    val instagram: String? = null,
+    val twitter: String? = null,
+    val facebook: String? = null,
+    val tiktok: String? = null,
+    val estado: String = "Activo"
+) {
+    val nombreCompleto: String
+        get() = "$nombres $apellidos"
+
+    fun getIniciales(): String {
+        return "${nombres.take(1)}${apellidos.take(1)}".uppercase()
+    }
+}
+
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/miembros/MiembrosAdapter.kt =====
+// MiembrosAdapter.kt
+package com.knarf.sise.ui.miembros
+
+import android.content.Intent
+import android.net.Uri
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.animation.AnimationUtils
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.knarf.sise.R
+
+class MiembrosAdapter(
+    private var miembros: List<Miembro>,
+    private val onItemClick: (Miembro) -> Unit,
+    private val onRedesClick: (Miembro) -> Unit
+) : RecyclerView.Adapter<MiembrosAdapter.MiembroViewHolder>() {
+
+    private val expandedPositions = mutableSetOf<Int>()
+    private var lastExpandedPosition = -1
+
+    inner class MiembroViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val tvNombre: TextView = itemView.findViewById(R.id.tvNombre)
+        private val tvDni: TextView = itemView.findViewById(R.id.tvDni)
+        private val tvEstado: TextView = itemView.findViewById(R.id.tvEstado)
+        private val imgAvatar: TextView = itemView.findViewById(R.id.imgAvatar)
+        private val tvCorreo: TextView = itemView.findViewById(R.id.tvCorreo)
+        private val tvTelefono: TextView = itemView.findViewById(R.id.tvTelefono)
+        private val tvDireccion: TextView = itemView.findViewById(R.id.tv_direccion)
+        private val tvUbicacion: TextView = itemView.findViewById(R.id.tvUbicacion)
+        private val btnVerRedes: Button = itemView.findViewById(R.id.btnVerRedes)
+        private val btnLlamar: ImageButton = itemView.findViewById(R.id.btnLlamar)
+        private val btnWhatsapp: ImageButton = itemView.findViewById(R.id.btnWhatsapp)
+        private val layoutDetalles: LinearLayout = itemView.findViewById(R.id.layoutDetalles)
+
+        fun bind(miembro: Miembro, position: Int) {
+            tvNombre.text = miembro.nombreCompleto
+            tvDni.text = "DNI: ${miembro.dni}"
+            imgAvatar.text = miembro.getIniciales()
+
+            tvEstado.text = miembro.estado
+            tvEstado.setBackgroundResource(
+                if (miembro.estado == "Activo") R.drawable.bg_estado_activo
+                else R.drawable.bg_estado_activo
+            )
+
+            val isExpanded = position in expandedPositions
+            layoutDetalles.visibility = if (isExpanded) View.VISIBLE else View.GONE
+
+            if (isExpanded) {
+                tvCorreo.text = miembro.correo
+                tvTelefono.text = "Tel: ${miembro.telefono}"
+                tvDireccion.text = "Dir: ${miembro.direccion}"
+                tvUbicacion.text = "Ubic: ${miembro.departamento}, ${miembro.provincia}, ${miembro.distrito}"
+
+                btnLlamar.setOnClickListener {
+                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${miembro.telefono}")
+                    }
+                    itemView.context.startActivity(intent)
+                }
+
+                btnWhatsapp.setOnClickListener {
+                    val phoneNumber = miembro.whatsapp ?: miembro.telefono
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("https://wa.me/51$phoneNumber")
+                    }
+                    itemView.context.startActivity(intent)
+                }
+            }
+
+            itemView.setOnClickListener {
+                toggleExpansion(position)
+            }
+
+            btnVerRedes.setOnClickListener {
+                onRedesClick(miembro)
+            }
+        }
+
+        private fun toggleExpansion(position: Int) {
+            if (position in expandedPositions) {
+                collapseItem(position)
+            } else {
+                expandItem(position)
+            }
+        }
+
+        private fun expandItem(position: Int) {
+            if (lastExpandedPosition != -1) {
+                collapseItem(lastExpandedPosition)
+            }
+
+            expandedPositions.add(position)
+            lastExpandedPosition = position
+            notifyItemChanged(position)
+
+            layoutDetalles.startAnimation(
+                AnimationUtils.loadAnimation(
+                    itemView.context,
+                    R.anim.expand_collapse
+                )
+            )
+        }
+
+        private fun collapseItem(position: Int) {
+            expandedPositions.remove(position)
+            notifyItemChanged(position)
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MiembroViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_miembro_completo, parent, false)
+        return MiembroViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: MiembroViewHolder, position: Int) {
+        holder.bind(miembros[position], position)
+    }
+
+    override fun getItemCount(): Int = miembros.size
+
+    fun updateData(newMiembros: List<Miembro>) {
+        miembros = newMiembros
+        expandedPositions.clear()
+        lastExpandedPosition = -1
+        notifyDataSetChanged()
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/miembros/MiembrosFragment.kt =====
+package com.knarf.sise.ui.miembros
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.knarf.sise.databinding.FragmentMiembrosBinding
+
+class MiembrosFragment : Fragment() {
+
+    private var _binding: FragmentMiembrosBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var miembrosAdapter: MiembrosAdapter
+    private lateinit var viewModel: MiembrosViewModel
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentMiembrosBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        viewModel = ViewModelProvider(this).get(MiembrosViewModel::class.java)
+
+        setupRecyclerView()
+        setupObservers()
+        setupSearch()
+    }
+
+    private fun setupRecyclerView() {
+        miembrosAdapter = MiembrosAdapter(
+            miembros = emptyList(),
+            onItemClick = { miembro -> showMemberDetails(miembro) },
+            onRedesClick = { miembro -> showSocialNetworks(miembro) }
+        )
+
+        binding.rvMiembros.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = miembrosAdapter
+            setHasFixedSize(true)
+        }
+    }
+
+    private fun setupObservers() {
+        viewModel.miembros.observe(viewLifecycleOwner) { miembros ->
+            miembrosAdapter.updateData(miembros)
+        }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun setupSearch() {
+        binding.etBuscar.setOnEditorActionListener { _, _, _ ->
+            filterMembers(binding.etBuscar.text.toString())
+            true
+        }
+    }
+
+    private fun filterMembers(query: String) {
+        viewModel.miembros.value?.let { miembros ->
+            val filtered = if (query.isEmpty()) {
+                miembros
+            } else {
+                miembros.filter { miembro ->
+                    miembro.nombreCompleto.contains(query, true) ||
+                            miembro.dni.contains(query, true) ||
+                            miembro.correo.contains(query, true)
+                }
+            }
+            miembrosAdapter.updateData(filtered)
+        }
+    }
+
+    private fun showMemberDetails(miembro: Miembro) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Detalles de ${miembro.nombres}")
+            .setMessage(
+                """
+                Nombre completo: ${miembro.nombreCompleto}
+                DNI: ${miembro.dni}
+                Email: ${miembro.correo}
+                Teléfono: ${miembro.telefono}
+                Dirección: ${miembro.direccion}
+                Ubicación: ${miembro.departamento}, ${miembro.provincia}, ${miembro.distrito}
+                Fecha Nacimiento: ${miembro.fechaNacimiento}
+                Estado: ${miembro.estado}
+                """.trimIndent()
+            )
+            .setPositiveButton("Aceptar", null)
+            .show()
+    }
+
+    private fun showSocialNetworks(miembro: Miembro) {
+        val redes = buildString {
+            miembro.instagram?.let { append("Instagram: $it\n") }
+            miembro.facebook?.let { append("Facebook: $it\n") }
+            miembro.twitter?.let { append("Twitter: $it\n") }
+            miembro.tiktok?.let { append("TikTok: $it") }
+        }.ifEmpty { "No hay redes sociales registradas" }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Redes Sociales")
+            .setMessage(redes)
+            .setPositiveButton("Cerrar", null)
+            .show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+
+===== /home/desarrollador/AndroidStudioProjects/sise/app/src/main/java/com/knarf/sise/ui/miembros/MiembrosViewModel.kt =====
+package com.knarf.sise.ui.miembros
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+
+class MiembrosViewModel : ViewModel() {
+
+    private val _miembros = MutableLiveData<List<Miembro>>()
+    val miembros: LiveData<List<Miembro>> = _miembros
+
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
+
+    init {
+        loadMiembros()
+    }
+
+    fun loadMiembros() {
+        _isLoading.value = true
+        // Simulamos carga de datos (en una app real sería llamada a API)
+        val sampleMembers = getSampleMembers()
+        _miembros.postValue(sampleMembers)
+        _isLoading.postValue(false)
+    }
+
+    private fun getSampleMembers(): List<Miembro> {
+        return listOf(
+            Miembro(
+                id = 1,
+                dni = "12345678",
+                nombres = "Juan",
+                apellidos = "Pérez López",
+                correo = "juan@example.com",
+                fechaNacimiento = "15/05/1985",
+                sexo = "Masculino",
+                telefono = "987654321",
+                direccion = "Av. Lima 123",
+                departamento = "Lima",
+                provincia = "Lima",
+                distrito = "Miraflores",
+                instagram = "juanperez",
+                facebook = "juan.perez.9",
+                estado = "Activo"
+            ),
+            Miembro(
+                id = 2,
+                dni = "87654321",
+                nombres = "María",
+                apellidos = "García Rodríguez",
+                correo = "maria@example.com",
+                fechaNacimiento = "22/11/1990",
+                sexo = "Femenino",
+                telefono = "987123456",
+                direccion = "Av. Arequipa 456",
+                departamento = "Arequipa",
+                provincia = "Arequipa",
+                distrito = "Yanahuara",
+                twitter = "mariagarcia",
+                tiktok = "maria.garcia",
+                estado = "Activo"
+            ),
+            Miembro(
+                id = 3,
+                dni = "45678912",
+                nombres = "Carlos",
+                apellidos = "Gómez Sánchez",
+                correo = "carlos@example.com",
+                fechaNacimiento = "10/08/1988",
+                sexo = "Masculino",
+                telefono = "987654123",
+                direccion = "Av. Brasil 789",
+                departamento = "Lima",
+                provincia = "Lima",
+                distrito = "San Isidro",
+                facebook = "carlos.gomez",
+                estado = "Activo"
+            )
+        )
+    }
+}

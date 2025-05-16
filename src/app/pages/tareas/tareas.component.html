@@ -1,0 +1,225 @@
+<div class="contenedor">
+    <p-toast></p-toast>
+    
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Gestión de Tareas por Distrito</h1>
+      <button 
+        pButton 
+        icon="pi pi-plus" 
+        label="Nueva Tarea" 
+        class="p-button-success"
+        (click)="showAddDialog()">
+      </button>
+    </div>
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Ubicación</label>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <!-- Departamento -->
+          <p-dropdown 
+            [options]="departamentos" 
+            [(ngModel)]="selectedFilterDepartment" 
+            optionLabel="nombre" 
+            placeholder="Departamento"
+            appendTo="body"
+            (onChange)="onFilterDepartmentChange()"
+            styleClass="w-full">
+          </p-dropdown>
+      
+          <!-- Provincia -->
+          <p-dropdown 
+            [options]="filteredProvincias" 
+            [(ngModel)]="selectedFilterProvince" 
+            optionLabel="nombre" 
+            placeholder="Provincia"
+            appendTo="body"
+            [disabled]="!selectedFilterDepartment"
+            (onChange)="onFilterProvinceChange()"
+            styleClass="w-full">
+          </p-dropdown>
+      
+          <!-- Distrito -->
+          <p-dropdown 
+            [options]="filteredDistritos" 
+            [(ngModel)]="selectedFilterDistrict" 
+            optionLabel="nombre" 
+            placeholder="Distrito"
+            appendTo="body"
+            [disabled]="!selectedFilterProvince"
+            (onChange)="filterByDistrict()"
+            styleClass="w-full">
+          </p-dropdown>
+        </div>
+      </div>
+      
+  
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distrito</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Límite</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let task of tasks">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ task.title }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.district }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ getStatusClass(task.status) }}">
+                      {{ getStatusLabel(task.status) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.dueDate | date:'shortDate' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button 
+                      pButton 
+                      icon="pi pi-pencil" 
+                      class="p-button-rounded p-button-text p-button-primary mr-2"
+                      (click)="showEditDialog(task)">
+                    </button>
+                    <button 
+                      pButton 
+                      icon="pi pi-trash" 
+                      class="p-button-rounded p-button-text p-button-danger"
+                      (click)="deleteTask(task.id!)">
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="tasks.length === 0">
+                  <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No hay tareas registradas</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Estadísticas de Tareas</h2>
+        <div class="chart-container">
+          <canvas id="taskChart"></canvas>
+        </div>
+      </div>
+    </div>
+  
+    <p-dialog 
+    [(visible)]="displayDialog" 
+    [style]="{width: '600px'}" 
+    header="{{editMode ? 'Editar Tarea' : 'Nueva Tarea'}}" 
+    [modal]="true" 
+    [draggable]="false" 
+    [resizable]="false">
+    <div class="grid grid-cols-1 gap-4">
+      <div>
+        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+        <input 
+          pInputText 
+          id="title" 
+          [(ngModel)]="currentTask.title" 
+          class="w-full" 
+          placeholder="Ingrese el título de la tarea" />
+      </div>
+
+      <!-- Selector de Departamento -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+        <p-dropdown 
+          [options]="departamentos" 
+          [(ngModel)]="selectedDepartment" 
+          optionLabel="nombre" 
+          placeholder="Seleccione un departamento"
+          appendTo="body"
+          (onChange)="onDepartmentChange()"
+          styleClass="w-full">
+        </p-dropdown>
+      </div>
+
+      <!-- Selector de Provincia -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+        <p-dropdown 
+          [options]="provincias" 
+          [(ngModel)]="selectedProvince" 
+          optionLabel="nombre" 
+          placeholder="Seleccione una provincia"
+          appendTo="body"
+          [disabled]="!selectedDepartment"
+          (onChange)="onProvinceChange()"
+          styleClass="w-full">
+        </p-dropdown>
+      </div>
+
+      <!-- Selector de Distrito -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
+        <p-dropdown 
+          [options]="distritos" 
+          [(ngModel)]="selectedDistrict" 
+          optionLabel="nombre" 
+          placeholder="Seleccione un distrito"
+          appendTo="body"
+          [disabled]="!selectedProvince"
+          (onChange)="onDistrictChange()"
+          styleClass="w-full">
+        </p-dropdown>
+      </div>
+
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <div class="custom-textarea">
+          <textarea 
+            id="description" 
+            [(ngModel)]="currentTask.description" 
+            rows="4" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" 
+            placeholder="Ingrese la descripción de la tarea"></textarea>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <p-dropdown 
+          [options]="statusOptions" 
+          [(ngModel)]="currentTask.status" 
+          optionLabel="label" 
+          optionValue="value" 
+          appendTo="body"
+          styleClass="w-full">
+        </p-dropdown>        
+        </div>
+        <div>
+          <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha Límite</label>
+          <p-calendar 
+            [(ngModel)]="currentTask.dueDate" 
+            dateFormat="dd/mm/yy" 
+            styleClass="w-full" 
+            [showIcon]="true">
+          </p-calendar>
+        </div>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button 
+        pButton 
+        icon="pi pi-times" 
+        label="Cancelar" 
+        class="p-button-text"
+        (click)="displayDialog = false">
+      </button>
+      <button 
+        pButton 
+        icon="pi pi-check" 
+        label="Guardar" 
+        class="p-button-success"
+        (click)="saveTask()">
+      </button>
+    </ng-template>
+  </p-dialog>
+</div>

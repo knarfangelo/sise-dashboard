@@ -10,7 +10,7 @@ import { filter } from 'rxjs';
   template: `
   <header>
 <nav>
-  <button><p class="logo">SISE</p></button>
+  <button class="btn-logo"><img src="ISOTIPO.png" class="logo"></button>
 
   <button routerLink="/dashboard" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">
     <i class="bi bi-speedometer2"></i> Dashboard
@@ -33,7 +33,7 @@ import { filter } from 'rxjs';
   <button routerLink="/tareas" routerLinkActive="activo">
     <i class="bi bi-list-check"></i> Mantenimiento Tareas
   </button>
-  <button>
+  <button routerLink="/novedades" routerLinkActive="activo">
     <i class="bi bi-chat-left-dots"></i> Mantenimiento Novedades
   </button>
 </nav>

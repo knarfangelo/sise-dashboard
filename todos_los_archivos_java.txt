@@ -1,0 +1,1207 @@
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/ApiApplication.java =====
+package com.knarf.api;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ApiApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ApiApplication.class, args);
+	}
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/ServletInitializer.java =====
+package com.knarf.api;
+
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+
+public class ServletInitializer extends SpringBootServletInitializer {
+
+	@Override
+	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+		return application.sources(ApiApplication.class);
+	}
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/config/WebConfig.java =====
+package com.knarf.api.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+            .allowedOrigins("*")  // En desarrollo, en producción especifica tu IP de Android
+            .allowedMethods("*")
+            .allowedHeaders("*");
+    }
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/controllers/DepartamentoController.java =====
+package com.knarf.api.controllers;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.knarf.api.models.Departamento;
+import com.knarf.api.services.DepartamentoService;
+
+@RestController
+@RequestMapping("/api/departamentos")
+public class DepartamentoController {
+    
+    @Autowired
+    private DepartamentoService departamentoService;
+
+    @GetMapping("/listar")
+    public ResponseEntity<List<Departamento>> listarDepartamentos() {
+        List<Departamento> departamentos = departamentoService.listarDepartamentos();
+        return ResponseEntity.ok(departamentos);
+    }
+    
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/controllers/DistritoController.java =====
+package com.knarf.api.controllers;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.knarf.api.models.Distrito;
+import com.knarf.api.services.DistritoService;
+
+@RestController
+@RequestMapping("/api/distritos")
+public class DistritoController {
+    
+    @Autowired
+    private DistritoService distritoService;
+
+    @GetMapping("/listar")
+    public ResponseEntity<List<Distrito>> listarDistritos() {
+        List<Distrito> distritos = distritoService.listarDistritos();
+        return ResponseEntity.ok(distritos);
+    }
+    
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/controllers/SemaforoController.java =====
+package com.knarf.api.controllers;
+
+import com.knarf.api.dtos.SemaforoDTO;
+import com.knarf.api.dtos.UbicacionSemaforoDTO;
+import com.knarf.api.models.Semaforo;
+import com.knarf.api.services.SemaforoService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/semaforos")
+public class SemaforoController {
+
+ @Autowired
+    private SemaforoService semaforoService;
+
+    @PostMapping("/registrar")
+    public ResponseEntity<?> registrarSemaforo(@RequestBody SemaforoDTO dto) {
+        try {
+            Semaforo semaforo = semaforoService.registrarSemaforo(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(semaforo);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", e.getMessage(),
+                "timestamp", System.currentTimeMillis()
+            ));
+        }
+    }
+
+
+    @GetMapping("/listar")
+    public List<UbicacionSemaforoDTO> listarSemaforos() {
+        return semaforoService.listarSemaforosPorDistrito();
+    }
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/controllers/UsuarioController.java =====
+package com.knarf.api.controllers;
+
+import com.knarf.api.dtos.RegistroInicialDTO;
+import com.knarf.api.dtos.RegistroUsuarioDTO;
+import com.knarf.api.dtos.UsuarioListadoDTO;
+import com.knarf.api.models.Usuario;
+import com.knarf.api.repository.UsuarioRepository;
+import com.knarf.api.services.UsuarioService;
+import com.knarf.api.services.VerificationService;
+import com.knarf.api.dtos.VerificationRequest;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/usuarios")
+public class UsuarioController {
+
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
+    private final VerificationService verificationService;
+
+    @Autowired
+    public UsuarioController(UsuarioRepository usuarioRepository, 
+                           UsuarioService usuarioService,
+                           VerificationService verificationService) {
+        this.usuarioRepository = usuarioRepository;
+        this.usuarioService = usuarioService;
+        this.verificationService = verificationService;
+    }
+
+    @GetMapping("/listar")
+    public ResponseEntity<List<UsuarioListadoDTO>> listarUsuarios() {
+        return ResponseEntity.ok(usuarioService.listarUsuarios());
+    }
+
+    @PostMapping("/registro")
+    public ResponseEntity<?> registrarUsuario(@RequestBody RegistroUsuarioDTO registroDTO) {
+        try {
+            Usuario nuevoUsuario = usuarioService.registrarUsuario(registroDTO);
+            return ResponseEntity.ok(nuevoUsuario);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/registro-inicial")
+    public ResponseEntity<?> registroInicial(@RequestBody RegistroInicialDTO registroDTO) {
+        try {
+            // Verifica si el usuario ya existe
+            if (usuarioRepository.existsByCorreo(registroDTO.getCorreo())) {
+                return ResponseEntity.badRequest().body("El correo ya está registrado");
+            }
+            if (usuarioRepository.existsById(registroDTO.getDni())) {
+                return ResponseEntity.badRequest().body("El DNI ya está registrado");
+            }
+            
+            // Crea y guarda el usuario temporal
+            Usuario usuario = new Usuario();
+            usuario.setDni(registroDTO.getDni());
+            usuario.setCorreo(registroDTO.getCorreo());
+            usuario.setActivo(false);
+            usuarioRepository.save(usuario);
+            
+            // Envía código de verificación
+            VerificationRequest request = new VerificationRequest();
+            request.setEmail(registroDTO.getCorreo());
+            request.setDni(registroDTO.getDni());
+            
+            var response = verificationService.sendVerificationCode(request);
+            
+            if (!response.isSuccess()) {
+                return ResponseEntity.badRequest().body(response.getError());
+            }
+            
+            return ResponseEntity.ok("Código de verificación enviado");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error en el servidor: " + e.getMessage());
+        }
+    }
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/controllers/VerificationController.java =====
+package com.knarf.api.controllers;
+
+import com.knarf.api.dtos.*;
+import com.knarf.api.services.VerificationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/auth")
+public class VerificationController {
+
+    @Autowired
+    private VerificationService verificationService;
+    
+    @PostMapping("/send-code")
+    public VerificationResponse sendCode(@RequestBody VerificationRequest request) {
+        return verificationService.sendVerificationCode(request);
+    }
+    
+    @PostMapping("/verify-code")
+    public VerificationResponse verifyCode(@RequestBody CodeVerificationRequest request) {
+        return verificationService.verifyCode(request);
+    }
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/RegistroUsuarioDTO.java =====
+package com.knarf.api.dtos;
+
+import lombok.Data;
+
+@Data
+public class RegistroUsuarioDTO {
+    private String dni;              // DNI del nuevo usuario
+    private String nombre;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
+    private String contrasenia;
+    private String correo;
+    private String telefono;
+    private Integer idDistrito;     // ID del distrito
+    private Long idRol;             // ID del rol
+    private String dniRegistrador;   // DNI del usuario que registra (opcional)
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/SemaforoDTO.java =====
+package com.knarf.api.dtos;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class SemaforoDTO {
+
+    private String nombre;
+    
+    private int maxRojo;
+    
+    private int maxAmarillo;
+    
+    private int maxVerde;
+    
+    private Integer idDistrito;  // ID del distrito obligatorio
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/UbicacionSemaforoDTO.java =====
+package com.knarf.api.dtos;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class UbicacionSemaforoDTO {
+    
+    private Integer distritoId;           // <-- Nuevo campo agregado
+    private String departamento;
+    private String provincia;
+    private String distrito;
+    private String nombreSemaforo;
+    private Integer maxRojo;
+    private Integer maxAmarillo;
+    private Integer maxVerde;
+   
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/UsuarioListadoDTO.java =====
+package com.knarf.api.dtos;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class UsuarioListadoDTO {
+    private String dni;
+    private String nombreCompleto;
+    private String rol;
+    private String distrito;
+    private String celular;
+    private String correo;
+    private int cantidadMiembrosRegistrados;
+    private int maxRojo;
+    private int maxAmarillo;
+    private int maxVerde;
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/VerificationRequest.java =====
+// VerificationRequest.java
+package com.knarf.api.dtos;
+
+import lombok.Data;
+
+@Data
+public class VerificationRequest {
+    private String email;
+    private String dni;
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/CodeVerificationRequest.java =====
+// CodeVerificationRequest.java
+package com.knarf.api.dtos;
+
+import lombok.Data;
+
+@Data
+public class CodeVerificationRequest {
+    private String email;
+    private String code;
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/VerificationResponse.java =====
+package com.knarf.api.dtos;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class VerificationResponse {
+    private boolean success;
+    private String message;
+    private String error;
+    
+    // Métodos estáticos para crear respuestas más fácilmente
+    public static VerificationResponse success(String message) {
+        return new VerificationResponse(true, message, null);
+    }
+    
+    public static VerificationResponse error(String error) {
+        return new VerificationResponse(false, null, error);
+    }
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/RegistroInicialDTO.java =====
+package com.knarf.api.dtos;
+
+import lombok.Data;
+
+@Data
+public class RegistroInicialDTO {
+    private String dni;
+    private String correo;
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/LoginResponse.java =====
+package com.knarf.api.dtos;
+
+import com.knarf.api.models.Usuario;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class LoginResponse {
+    private String dni;
+    private String nombreCompleto;
+    private String correo;
+    private String rol;
+    private String token; // Opcional: para implementar JWT más adelante
+    
+    // Método factory para crear la respuesta más fácilmente
+    public static LoginResponse fromUsuario(Usuario usuario) {
+        return new LoginResponse(
+            usuario.getDni(),
+            usuario.getNombre() + " " + usuario.getApellidoPaterno(),
+            usuario.getCorreo(),
+            usuario.getRol().getNombre(),
+            null // O el token JWT si lo implementas
+        );
+    }
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/dtos/LoginRequest.java =====
+package com.knarf.api.dtos;
+
+import lombok.Data;
+
+
+@Data
+public class LoginRequest {
+    
+
+    private String email;
+    
+    private String password;
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Departamento.java =====
+package com.knarf.api.models;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+
+@Entity
+@Data
+@Table(name = "departamentos")
+public class Departamento {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idDepa")
+    private Integer id;
+
+    @Column(name = "Departamento", nullable = false)
+    private String nombre;
+
+    @OneToMany(mappedBy = "departamento", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<Provincia> provincias;
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Distrito.java =====
+package com.knarf.api.models;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Entity
+@Data
+@Table(name = "distritos")
+public class Distrito {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idDist")
+    private Integer id;
+
+    @Column(name = "Distrito", nullable = false)
+    private String nombre;
+
+    @ManyToOne
+    @JoinColumn(name = "idProv", nullable = false)
+    @JsonBackReference
+    private Provincia provincia;
+
+    @OneToOne(mappedBy = "distrito", cascade = CascadeType.ALL)
+    @JsonManagedReference  // Permite que se serialice Semaforo desde Distrito si lo necesitas
+    private Semaforo semaforo;
+
+    
+
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Miembro.java =====
+package com.knarf.api.models;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import lombok.Data;
+
+@Entity
+@Data
+public class Miembro {
+
+    @Id
+    private String dni;
+    private String nombre;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
+    private String fechaNacimiento;
+    private String telefono;
+    private String correo;
+    private String direccion;
+
+    @ManyToOne
+    @JoinColumn(name = "idDistrito", nullable = false)  // Relación con Distrito
+    private Distrito distrito;  // La ubicación del miembro
+
+   
+    @ManyToOne
+    @JoinColumn(name = "usuario_id") // Cambiado para coincidir con el mappedBy
+    private Usuario usuario;  // Cambiado de 'regristadoPor' a 'usuario'
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Provincia.java =====
+package com.knarf.api.models;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Entity
+@Data
+@Table(name = "provincias")
+public class Provincia {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idProv")
+    private Integer id;
+
+    @Column(name = "Provincia", nullable = false)
+    private String nombre;
+
+    @ManyToOne
+    @JoinColumn(name = "idDepa", nullable = false)
+    @JsonBackReference
+    private Departamento departamento;
+
+    @OneToMany(mappedBy = "provincia", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<Distrito> distritos;
+
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Rol.java =====
+package com.knarf.api.models;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import lombok.Data;
+
+@Entity
+@Data
+public class Rol {
+    
+    @Id
+    private Long id;
+    private String nombre;
+    private String descripcion;
+    private String nivel;
+
+    @OneToMany(mappedBy = "rol")
+    @JsonBackReference
+    private List<Usuario> usuarios;  // Lista de usuarios con este rol
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Semaforo.java =====
+package com.knarf.api.models;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import lombok.Data;
+
+@Entity
+@Data
+public class Semaforo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String nombre;
+    private Integer maxRojo;
+    private Integer maxAmarillo;
+    private Integer maxVerde;
+
+    @OneToOne
+    @JoinColumn(name = "distrito_id")
+    @JsonBackReference  // Evita serializar el Semaforo en el Distrito
+    private Distrito distrito;
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/models/Usuario.java =====
+package com.knarf.api.models;
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
+import lombok.Data;
+
+@Entity
+@Data
+public class Usuario {
+
+    @Id
+    private String dni;
+    private String nombre;
+    private String contrasenia;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
+    private String fechaNacimiento;
+    private String telefono;
+    private String correo;
+    private String direccion;
+    private boolean activo = false; // Campo añadido para verificación
+
+    @ManyToOne
+    @JoinColumn(name = "idDistrito", nullable = false)
+    private Distrito distrito;
+
+    @ManyToOne
+    @JsonManagedReference
+    private Rol rol;
+
+    @ManyToOne
+    @JoinColumn(name = "registrado_por")
+    @JsonBackReference
+    private Usuario registradoPor;
+
+    @OneToMany(mappedBy = "registradoPor")
+    @JsonManagedReference
+    private List<Usuario> usuariosRegistrados;
+
+    @OneToMany(mappedBy = "usuario")
+    private List<Miembro> miembrosRegistrados;
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/repository/DepartamentoRepository.java =====
+package com.knarf.api.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.knarf.api.models.Departamento;
+
+public interface DepartamentoRepository  extends JpaRepository<Departamento, Integer> {
+    // Aquí puedes agregar métodos personalizados si es necesario
+
+    
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/repository/DistritoRepository.java =====
+package com.knarf.api.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.knarf.api.models.Distrito;
+
+public interface DistritoRepository extends JpaRepository<Distrito, Integer> {
+        Optional<Distrito> findById(Integer id);
+
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/repository/ProvinciaRepository.java =====
+// ProvinciaRepository.java
+package com.knarf.api.repository;
+
+import com.knarf.api.models.Provincia;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ProvinciaRepository extends JpaRepository<Provincia, Integer> {
+    
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/repository/RolRepository.java =====
+package com.knarf.api.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.knarf.api.models.Rol;
+
+public interface RolRepository extends JpaRepository<Rol, Long> {
+
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/repository/SemaforoRepository.java =====
+// SemaforoRepository.java
+package com.knarf.api.repository;
+
+import com.knarf.api.models.Semaforo;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SemaforoRepository extends JpaRepository<Semaforo, Long> {
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/repository/UsuarioRepository.java =====
+package com.knarf.api.repository;
+
+import com.knarf.api.models.Usuario;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UsuarioRepository extends JpaRepository<Usuario, String> {
+    boolean existsByCorreo(String correo);
+    Optional<Usuario> findByCorreoAndDni(String correo, String dni);
+    Optional<Usuario> findByCorreo(String correo);
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/services/DepartamentoService.java =====
+package com.knarf.api.services;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.knarf.api.models.Departamento;
+import com.knarf.api.repository.DepartamentoRepository;
+
+@Service
+public class DepartamentoService {
+    
+    @Autowired
+    DepartamentoRepository departamentoRepository;
+
+    public List<Departamento> listarDepartamentos() {
+        // Logic to list departments
+        return departamentoRepository.findAll();
+    }
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/services/DistritoService.java =====
+package com.knarf.api.services;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.knarf.api.models.Distrito;
+import com.knarf.api.repository.DistritoRepository;
+
+@Service
+public class DistritoService {
+
+        
+    @Autowired
+    private DistritoRepository distritoRepository;
+    
+    public Distrito obtenerDistritoPorId(Integer id) {
+        return distritoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Distrito no encontrado"));
+    }
+
+    public List<Distrito> listarDistritos() {
+        return distritoRepository.findAll();
+    }
+
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/services/RolService.java =====
+package com.knarf.api.services;
+
+import com.knarf.api.models.Rol;
+import com.knarf.api.repository.RolRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class RolService {
+    
+    @Autowired
+    private RolRepository rolRepository;
+    
+    public Rol obtenerRolPorId(Long id) {
+        return rolRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+    }
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/services/SemaforoService.java =====
+package com.knarf.api.services;
+
+import com.knarf.api.dtos.SemaforoDTO;
+import com.knarf.api.dtos.UbicacionSemaforoDTO;
+import com.knarf.api.models.Departamento;
+import com.knarf.api.models.Distrito;
+import com.knarf.api.models.Provincia;
+import com.knarf.api.models.Semaforo;
+import com.knarf.api.repository.DistritoRepository;
+import com.knarf.api.repository.SemaforoRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class SemaforoService {
+
+    @Autowired
+    private SemaforoRepository semaforoRepository;
+
+    @Autowired
+    private DistritoRepository distritoRepository;
+
+    
+
+    public Semaforo registrarSemaforo(SemaforoDTO dto) {
+        // 1. Verifica si el distrito existe
+        Distrito distrito = distritoRepository.findById(dto.getIdDistrito())
+                .orElseThrow(() -> new RuntimeException("Distrito no encontrado"));
+    
+        // 2. Verifica si el distrito ya tiene un semáforo
+        Semaforo semaforoExistente = distrito.getSemaforo();
+        
+        if (semaforoExistente != null) {
+            // Si ya existe un semáforo, lo actualizamos
+            semaforoExistente.setNombre(dto.getNombre());
+            semaforoExistente.setMaxRojo(dto.getMaxRojo());
+            semaforoExistente.setMaxAmarillo(dto.getMaxAmarillo());
+            semaforoExistente.setMaxVerde(dto.getMaxVerde());
+    
+            // Guardar los cambios en la base de datos
+            semaforoRepository.save(semaforoExistente);
+    
+            return semaforoExistente;  // Retornar el semáforo actualizado
+        } else {
+            // Si no existe, creamos un nuevo semáforo
+            Semaforo nuevoSemaforo = new Semaforo();
+            nuevoSemaforo.setNombre(dto.getNombre());
+            nuevoSemaforo.setMaxRojo(dto.getMaxRojo());
+            nuevoSemaforo.setMaxAmarillo(dto.getMaxAmarillo());
+            nuevoSemaforo.setMaxVerde(dto.getMaxVerde());
+            nuevoSemaforo.setDistrito(distrito);
+    
+            // Guardar el nuevo semáforo en la base de datos
+            Semaforo savedSemaforo = semaforoRepository.save(nuevoSemaforo);
+    
+            // Actualizar la relación con el distrito
+            distrito.setSemaforo(savedSemaforo);
+            distritoRepository.save(distrito);  // Actualizar el distrito
+    
+            return savedSemaforo;  // Retornar el nuevo semáforo
+        }
+    }
+
+    
+    public List<UbicacionSemaforoDTO> listarSemaforosPorDistrito() {
+        return distritoRepository.findAll().stream().map(distrito -> {
+            Provincia provincia = distrito.getProvincia();
+            Departamento departamento = provincia.getDepartamento();
+            Semaforo semaforo = distrito.getSemaforo();
+    
+            return new UbicacionSemaforoDTO(
+                distrito.getId(),
+                departamento != null ? departamento.getNombre() : null,
+                provincia != null ? provincia.getNombre() : null,
+                distrito.getNombre(),
+                semaforo != null ? semaforo.getNombre() : "Sin semáforo",
+                semaforo != null ? semaforo.getMaxRojo() : 0,
+                semaforo != null ? semaforo.getMaxAmarillo() : 0,
+                semaforo != null ? semaforo.getMaxVerde() : 0
+            );
+        }).collect(Collectors.toList());
+    }
+}
+
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/services/UsuarioService.java =====
+package com.knarf.api.services;
+
+import com.knarf.api.dtos.RegistroUsuarioDTO;
+import com.knarf.api.dtos.UsuarioListadoDTO;
+import com.knarf.api.models.*;
+import com.knarf.api.repository.UsuarioRepository;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class UsuarioService {
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+    
+    @Autowired
+    private DistritoService distritoService;
+    
+    @Autowired
+    private RolService rolService;
+
+    public Usuario registrarUsuario(RegistroUsuarioDTO registroDTO) {
+        // Verificar si el DNI ya existe
+        if (usuarioRepository.existsById(registroDTO.getDni())) {
+            throw new RuntimeException("El DNI ya está registrado");
+        }
+        
+        // Verificar si el correo ya existe
+        if (usuarioRepository.existsByCorreo(registroDTO.getCorreo())) {
+            throw new RuntimeException("El correo ya está registrado");
+        }
+        
+        // Obtener distrito y rol
+        Distrito distrito = distritoService.obtenerDistritoPorId(registroDTO.getIdDistrito());
+        Rol rol = rolService.obtenerRolPorId(registroDTO.getIdRol());
+        
+        // Buscar usuario registrador (si se proporcionó DNI)
+        Usuario registrador = null;
+        if (registroDTO.getDniRegistrador() != null && !registroDTO.getDniRegistrador().isEmpty()) {
+            registrador = usuarioRepository.findById(registroDTO.getDniRegistrador())
+                    .orElse(null); // No lanzamos excepción si no existe
+        }
+        
+        // Crear nuevo usuario
+        Usuario usuario = new Usuario();
+        usuario.setDni(registroDTO.getDni());
+        usuario.setNombre(registroDTO.getNombre());
+        usuario.setApellidoPaterno(registroDTO.getApellidoPaterno());
+        usuario.setApellidoMaterno(registroDTO.getApellidoMaterno());
+        usuario.setContrasenia(registroDTO.getContrasenia()); // Sin encriptar en versión simple
+        usuario.setCorreo(registroDTO.getCorreo());
+        usuario.setTelefono(registroDTO.getTelefono());
+        usuario.setDistrito(distrito);
+        usuario.setRol(rol);
+        usuario.setRegistradoPor(registrador); // Puede ser null
+        
+        return usuarioRepository.save(usuario);
+    }
+
+
+
+   @Transactional(readOnly = true)
+public List<UsuarioListadoDTO> listarUsuarios() {
+    List<Usuario> usuarios = usuarioRepository.findAll();
+
+    return usuarios.stream().map(usuario -> {
+        String nombreCompleto = usuario.getNombre() + " " + usuario.getApellidoPaterno() + " " + usuario.getApellidoMaterno();
+        String rol = usuario.getRol().getNombre();
+        String distrito = usuario.getDistrito().getNombre();
+        String celular = usuario.getTelefono();
+        String correo = usuario.getCorreo();
+        int cantidadMiembrosRegistrados = usuario.getMiembrosRegistrados() != null
+                ? usuario.getMiembrosRegistrados().size() : 0;
+
+        // Obtener el Semáforo a través del Distrito
+        Semaforo semaforo = null;
+        try {
+            // Primero obtenemos el Distrito desde la Provincia
+            Distrito distritoEntity = usuario.getDistrito();
+            if (distritoEntity != null) {
+                semaforo = distritoEntity.getSemaforo();
+            }
+        } catch (Exception e) {
+            // Si alguna relación está incompleta o es null
+        }
+
+        return new UsuarioListadoDTO(
+            usuario.getDni(),
+            nombreCompleto,
+            rol,
+            distrito,
+            celular,
+            correo,
+            cantidadMiembrosRegistrados,
+            semaforo != null ? semaforo.getMaxRojo() : 0,
+            semaforo != null ? semaforo.getMaxAmarillo() : 0,
+            semaforo != null ? semaforo.getMaxVerde() : 0
+        );
+    }).collect(Collectors.toList());
+}
+
+
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/services/VerificationService.java =====
+package com.knarf.api.services;
+
+import com.knarf.api.dtos.*;
+import com.knarf.api.models.Usuario;
+import com.knarf.api.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+@Service
+public class VerificationService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final JavaMailSender mailSender;
+    private final Map<String, String> verificationCodes = new HashMap<>();
+
+    @Autowired
+    public VerificationService(UsuarioRepository usuarioRepository, 
+                             JavaMailSender mailSender) {
+        this.usuarioRepository = usuarioRepository;
+        this.mailSender = mailSender;
+    }
+
+    public VerificationResponse sendVerificationCode(VerificationRequest request) {
+        try {
+            // Verificar si el usuario existe por DNI o correo
+            Usuario usuario = usuarioRepository.findByCorreoAndDni(request.getEmail(), request.getDni())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            // Generar código de 4 dígitos
+            String code = String.format("%04d", new Random().nextInt(10000));
+            
+            // Almacenar código en memoria
+            verificationCodes.put(request.getEmail(), code);
+            
+            // Enviar correo
+            try {
+                sendEmail(request.getEmail(), code);
+                return VerificationResponse.success("Código enviado al correo");
+            } catch (MailException e) {
+                return VerificationResponse.error("Error al enviar el correo: " + e.getMessage());
+            }
+            
+        } catch (Exception e) {
+            return VerificationResponse.error("Error: " + e.getMessage());
+        }
+    }
+
+    public VerificationResponse verifyCode(CodeVerificationRequest request) {
+        try {
+            // Buscar usuario por correo
+            Usuario usuario = usuarioRepository.findByCorreo(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            // Obtener código almacenado
+            String storedCode = verificationCodes.get(request.getEmail());
+            
+            if (storedCode == null || !storedCode.equals(request.getCode())) {
+                return VerificationResponse.error("Código inválido o expirado");
+            }
+            
+            // Marcar usuario como verificado
+            usuario.setActivo(true);
+            usuarioRepository.save(usuario);
+            
+            // Eliminar código usado
+            verificationCodes.remove(request.getEmail());
+            
+            return VerificationResponse.success("Verificación exitosa");
+        } catch (Exception e) {
+            return VerificationResponse.error("Error: " + e.getMessage());
+        }
+    }
+
+    private void sendEmail(String email, String code) throws MailException {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Código de Verificación");
+        message.setText("Tu código de verificación es: " + code);
+        mailSender.send(message);
+    }
+}
+
+===== /home/desarrollador/Documentos/knarf2003angelo/api-sise/springsise/src/main/java/com/knarf/api/handlers/GlobalExceptionHandler.java =====
+package com.knarf.api.handlers;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body("Error interno del servidor: " + e.getMessage());
+    }
+    
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntimeException(RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(e.getMessage());
+    }
+}

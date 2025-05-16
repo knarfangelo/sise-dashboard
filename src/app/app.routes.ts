@@ -9,11 +9,13 @@ import { SemaforosComponent } from './pages/semaforos/semaforos.component';
 import { TareasComponent } from './pages/tareas/tareas.component';
 import { UsuariosComponent } from './pages/Usuarios/Usuarios.component';
 import { TableMantenimientoComponent } from './pages/ciudadanos/mantenimientoCiudadanos/tableMantenimiento/tableMantenimiento.component';
+import { NovedadesComponent } from './pages/novedades/novedades.component';
 
 export const routes: Routes = [
 
     { path: '', component:NavbarComponent,
         children: [
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: 'dashboard', component:DashboardComponent },
             { path: 'ciudadanos', component:CiudadanosComponent },
             { path: 'mantenimiento-ciudadanos', component:MantenimientoCiudadanosComponent },
@@ -22,6 +24,7 @@ export const routes: Routes = [
             { path: 'semaforos', component:SemaforosComponent },
             { path: 'tareas', component:TareasComponent },
             { path: 'usuarios', component:UsuariosComponent },
+            { path: 'novedades', component:NovedadesComponent },
         ]
     },
 

@@ -1,4 +1,5 @@
-.contenedor{
+/* tasks.component.css */
+.contenedor {
   max-width: 80%;
   min-width: 1150px;
   border-radius: 20px;
@@ -7,6 +8,20 @@
   padding: 25px;
   height: auto;
   position: relative;
-  background-color: #ffffff; 
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
 
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+.custom-textarea textarea {
+  transition: all 0.3s;
+}
+
+.custom-textarea textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
 }

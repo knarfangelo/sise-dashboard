@@ -119,7 +119,7 @@ import { Departamento, Distrito, Persona, Provincia, SelectItem } from '../../mo
             <td class="miembros"><i class="pi pi-users"></i> {{ persona.miembros }}</td>
             <td>
               <div class="acciones">
-                <p-button severity="info" (click)="editarPersona(persona.dni)"><i class="pi pi-pencil"></i></p-button>
+                <p-button severity="info" (click)="infoPersona(persona.dni)"><i class="pi pi-eye"></i></p-button>
                 <p-button severity="danger"><i class="pi pi-trash"></i></p-button>
               </div>
             </td>
@@ -402,7 +402,7 @@ export class RedesComponent {
     this.cd.markForCheck();
   }
 
-  editarPersona(dni: string): void {
+  infoPersona(dni: string): void {
     this.router.navigate([dni], { relativeTo: this.route });
   }
 }

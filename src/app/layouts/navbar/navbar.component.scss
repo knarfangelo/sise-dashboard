@@ -9,15 +9,10 @@ header {
   background-color: #e4e4e4;
   justify-content: center;
 }
-.logo {
-  font-size: 50px;
-  text-align: center;
-  font-style: italic;
-  font-weight: bold;
-  width: 100%;
-}
+
 nav {
-    background-color: #1f2937; // Gris oscuro (tipo Tailwind "gray-800")
+  background-color: hsl(224, 50%, 25%); // Gris oscuro (tipo Tailwind "gray-800")
+
     min-width: 290px;
     height: 100vh;
     display: flex;
@@ -49,7 +44,7 @@ nav {
       } 
   
       &:hover {
-        background-color: #374151; // Hover gris más claro
+        background-color: hsl(224, 80%, 25%); // Gris oscuro (tipo Tailwind "gray-800")
         transform: translateX(4px);
         cursor: pointer;
       }
@@ -82,7 +77,16 @@ nav {
   }
 
   nav .activo {
-    background-color: #374151; // Gris más claro (tipo Tailwind "gray-700")
-  }
+    background-color: hsl(224, 100%, 37%); // Gris oscuro (tipo Tailwind "gray-800")  
+    }
 
+
+  .btn-logo{
+    display: flex;
+    height: 170px;
+
+    .logo {
+      object-fit: contain;
+    }
+  }
   
